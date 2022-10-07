@@ -122,7 +122,10 @@ module xtb_gfnff_topology
 
    ! holds info for ML correction of GFN-FF calculation !@thomas_ffml
    type :: Tffml
-     real(wp), allocatable   :: eatoms(:) ! atom wise energy calculated in gfnff_eg
+     real(wp), allocatable :: eatoms(:) ! atom wise energy calculated in gfnff_eg
+     real(wp), allocatable :: q(:)  ! GFN-FF charges (are taken from nlist in gfnff_eg)
+     !> mapping of atom indices from reference to original input and vice versa
+     integer, allocatable :: ref2o(:), o2ref(:)  
    end type Tffml
 
 

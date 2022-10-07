@@ -213,7 +213,7 @@ subroutine generate_anc_blowup(self,iunit,xyz,hess,pr,linear)
    enddo get_anc
 
    if (fail) then
-      write(*,*) 'nvar, selv%nvar',nvar,self%nvar
+      write(*,*) 'nvar, self%nvar',nvar,self%nvar
       call raise('E',"ANC generation failed!")
    end if
 

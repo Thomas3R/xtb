@@ -261,10 +261,13 @@ contains
          jat=topo%blist(2,i)
          r3 =xyz(:,iat)-xyz(:,jat)
          rab=sqrt(sum(r3*r3))
-         rn=0.7*(param%rcov(at(iat))+param%rcov(at(jat)))
+         rn=0.7*(param%rcov(at(iat))+param%rcov(at(jat))) !@thomas original
+!         rn=0.1*(param%rcov(at(iat))+param%rcov(at(jat)))
          r2=rn-rab
-         ebond=ebond+0.1d0*r2**2  ! fixfc = 0.1
-         dum=0.1d0*2.0d0*r2/rab
+         ebond=ebond+0.1d0*r2**2  ! fixfc = 0.1  !@thomas original
+!         ebond=ebond+3.0d0*r2**2  ! fixfc = 0.1
+         dum=0.1d0*2.0d0*r2/rab !@thomas original
+!         dum=3.d0*2.0d0*r2/rab
          g(:,jat)=g(:,jat)+dum*r3
          g(:,iat)=g(:,iat)-dum*r3
       enddo
@@ -633,10 +636,12 @@ contains
      &           + eangl + etors + ehb + exb + ebatm + eext &
      &           + gsolv
 
+   ! Set up ffml
    ! atom wise energy
-   if(SUM(abs(ffml%eatoms)).eq.0.0_wp) then ! only assign in first SP (cf. prog/main.F90)
-     ffml%eatoms=tmp_eatoms
-   endif
+   ffml%eatoms = tmp_eatoms
+   ! GFN-FF charges
+   ffml%q = nlist%q
+
 
 !!!!!!!!!!!!!!!!!!
 ! printout

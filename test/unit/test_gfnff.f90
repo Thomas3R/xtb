@@ -109,7 +109,7 @@ subroutine test_gfnff_sp(error)
 
    call gfnff_eg(env,gff_print,mol%n,nint(mol%chrg),mol%at,mol%xyz,make_chrg, &
       & g,etot,res_gff,calc%param,calc%topo,nlist,solvation,.true.,calc%version, &
-      & calc%accuracy)
+      & calc%accuracy,calc%ffml)
 
    call check_(error, res_gff%e_total,-0.76480130317838_wp, thr=thr)
    call check_(error, res_gff%gnorm,   0.06237477492373_wp, thr=thr)

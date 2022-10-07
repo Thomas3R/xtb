@@ -580,6 +580,7 @@ subroutine xtbMain(env, argParser)
    select type(calc)
    type is(TGFFCalculator)
      allocate(calc%ffml%eatoms(mol%n), source=0.0_wp) !@thomas_ffml atom wise energy for ML
+     allocate(calc%ffml%q(mol%n), source=0.0_wp) !@thomas_ffml atom wise energy for ML
    end select
    call start_timing(2)
    call calc%singlepoint(env,mol,chk,2,exist,etot,g,sigma,egap,res)
@@ -909,16 +910,13 @@ subroutine xtbMain(env, argParser)
          write(*,*) 
          call generic_header(iprop,'ML correction for GFN-FF',49,10)
          write(*,*)
-         call calc_ML_correction(env,calc%ffml,fname,calc%topo,mol)
-!         write(*,*) 'calc allocated: ',calc%topo%blist !@thomas delete
+         call calc_ML_correction(env,calc%ffml,fname,calc%topo,chk%nlist,mol)
      end select
-!     write(*,*) 'moltest: ',mol%xyz(:,1)
-!     write(*,*) 'etot: ', etot
-!     write(*,*) 'g:',g(:,1)
    endif
    select type(calc)
    type is(TGFFCalculator)
      deallocate(calc%ffml%eatoms) !@thomas_ffml
+     deallocate(calc%ffml%q) !@thomas_ffml
    end select
 
 
