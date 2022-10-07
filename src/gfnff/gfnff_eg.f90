@@ -212,6 +212,14 @@ contains
 ! REP part
 ! non-bonded
 !!!!!!!!!!!!!
+!@thomas harmonic2020 for refGen
+!@thomas TODO if not using this change param intent back to (in)
+!if (version == gffVersion%harmonic2020) then
+  !write(*,*) 'param%repscaln=',param%repscaln ! = 0.4270
+  ! tested orig_repscaln * 40,30,20,10,5,2
+  !param%repscaln=0.0_wp !0.427_wp
+  !write(*,*) 'param%repscaln=',param%repscaln
+!else
 
       if (pr) call timer%measure(2,'non bonded repulsion')
       !$omp parallel do default(none) reduction(+:erep,tmp_eatoms, g) &
@@ -245,6 +253,7 @@ contains
       !$omp end parallel do
       if (pr) call timer%measure(2)
 
+!endif !@thomas harmonic2020
       
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -253,6 +262,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       if (version == gffVersion%harmonic2020) then
+        !write(*,*) 'Harmonic2020  nbond=',topo%nbond
       ebond=0
       !$omp parallel do default(none) reduction(+:ebond,tmp_eatoms, g) &
       !$omp shared(topo, param, xyz, at) private(i, iat, jat, rab, r2, r3, rn, dum)
@@ -262,17 +272,18 @@ contains
          r3 =xyz(:,iat)-xyz(:,jat)
          rab=sqrt(sum(r3*r3))
          rn=0.7*(param%rcov(at(iat))+param%rcov(at(jat))) !@thomas original
-!         rn=0.1*(param%rcov(at(iat))+param%rcov(at(jat)))
+!         rn=0.7*(param%rcov(at(iat))+param%rcov(at(jat)))
          r2=rn-rab
          ebond=ebond+0.1d0*r2**2  ! fixfc = 0.1  !@thomas original
-!         ebond=ebond+3.0d0*r2**2  ! fixfc = 0.1
+!         ebond=ebond+0.4d0*r2**2  ! fixfc = 0.1
          dum=0.1d0*2.0d0*r2/rab !@thomas original
-!         dum=3.d0*2.0d0*r2/rab
+!         dum=0.4d0*2.0d0*r2/rab
          g(:,jat)=g(:,jat)+dum*r3
          g(:,iat)=g(:,iat)-dum*r3
       enddo
       !$omp end parallel do
       etot = ebond + erep
+!      write(*,'(a,f20.12)')'etot = ',etot
       return
       endif
 

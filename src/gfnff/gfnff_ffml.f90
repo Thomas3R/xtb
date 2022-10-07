@@ -224,7 +224,7 @@ subroutine ml_struc_convert( &
   real(wp)                                    :: sign_threshold
   type(TMolecule)                             :: mol_shifted
   character(len=*), parameter :: source = "gfnff_ffml"
-  real(wp), parameter :: init_etot = 999.0_wp
+  real(wp), parameter :: init_etot = huge(1.0_wp)
   integer :: o2r(mol%n),r2o(mol%n) ! atom index mapping from orig to ref and vice versa
   character(len=1024) :: emsg
   !integer :: nseed
@@ -237,10 +237,11 @@ subroutine ml_struc_convert( &
 !  real(wp) :: shvec(3)
 !  real(wp) :: sign_threshold
 
+write(*,*) 'Start of 2D 3D converter routine.'
   ! number of "random" shifts plus optimization 
   !@thomas TODO critical for most systems 3 is enough
   !    for odd bonding situation it needs about 100-500
-  num_shift_runs=32 !@thomas TODO < If I can map sorting in 2d input to the original structure
+  num_shift_runs=8 !@thomas TODO < If I can map sorting in 2d input to the original structure
     ! then I could use the orignial gfnff_topo and retrieve topo%nb/neigh%nb and use it for
     ! setting up the shift below
   allocate(shift(mol%n), source=0.0_wp)
@@ -259,6 +260,10 @@ subroutine ml_struc_convert( &
   set%mode_extrun = p_ext_gfnff
   if (.not.allocated(fnv)) fnv=xfind(p_fname_param_gfnff)
   call newGFFCalculator(env, mol, calc, fnv, restart, gffVersion%harmonic2020)
+  calc%topo%bpair = topo%bpair
+  calc%topo%alphanb = topo%alphanb
+  calc%topo%nbond = topo%nbond
+  calc%topo%blist = topo%blist
   ! use those parts of original topology that are really independent of coordinates
   !calc%topo=topo ! use whole topology from original input 
 !write(*,*) 'topo from newGFF on 2D-mol'
@@ -266,10 +271,6 @@ write(*,*) 'nb20 from orig topo'
 write(*,'(23i4)') topo%nb(20,:)
 !write(*,*) 'qa'
 !write(*,'(12f10.3)') calc%topo%qa
-  calc%topo%bpair = topo%bpair
-  calc%topo%alphanb = topo%alphanb
-  calc%topo%nbond = topo%nbond
-  calc%topo%blist = topo%blist
 !  calc%topo%nb = topo%nb
 !  calc%topo%hyb = topo%hyb
 !  calc%topo%nangl = topo%nangl
@@ -283,6 +284,8 @@ write(*,'(23i4)') topo%nb(20,:)
 !  calc%topo%bond_hb_B = topo%bond_hb_B
 !  calc%topo%bond_hb_Bn = topo%bond_hb_Bn
 !  calc%topo% = topo%
+write(*,*) 'calc%topo%nbond set from orig topo'
+write(*,*) calc%topo%nbond
 
 
 !===============================
@@ -325,28 +328,44 @@ write(*,'(23i4)') topo%nb(20,:)
   ! and then keeps the mol%xyz with lowest etot for md
   search_done=.false.
   nruns=1
+  mol_shifted = mol
+  write(*,*) 'Starting preoptimization with shifts.'
   do i=1, num_shift_runs !@thomas changed from i=1
-    mol_shifted = mol
     ! create array with deterministic alternating shifts between -1 and 1
     shift=0.0_wp
     call RANDOM_NUMBER(shift)
-    shift=shift+0.1 !@thomas 
+    shift=shift!*0.2 !@thomas 
     do j=1, size(shift) !!
       call RANDOM_NUMBER(sign_threshold)
       if (sign_threshold.lt.0.5_wp) shift(j) = -1.0_wp*shift(j)
     enddo
+!  do j=1, mol%n
+!    do k=1, topo%nb(20,j)
+!    enddo
+!  enddo
     mol_shifted%xyz(3,:) = mol_shifted%xyz(3,:) + shift  ! apply shifts
+    !@thomas
+!  if (.not.allocated(fnv)) fnv=xfind(p_fname_param_gfnff)
+!  call newGFFCalculator(env, mol, calc, fnv, restart, gffVersion%harmonic2020)
+!  calc%topo%bpair = topo%bpair
+!  calc%topo%alphanb = topo%alphanb
+!  calc%topo%nbond = topo%nbond
+!  calc%topo%blist = topo%blist
+!  write(*,'(20i4)') calc%topo%nb(20,1:20)
+    !@thomas
 !    ! set temperature to 0K
 !    set%temp_md  = 0.0_wp    ! md temperature 0 K
     ! crude optimization of shifted coordinates 
   ! p_olev_crude: ethr=5.d-4  gthr=1.d-2  maxcycle=n  acc=3.00d0    
     call geometry_optimization &
         &     (env,mol_shifted,chk,calc,   &
-        &      egap,set%etemp,maxiter,maxcycle,etot,g,sigma,p_olev_lax,.false.,.true.,fail)
+        &      egap,set%etemp,maxiter,maxcycle,etot,g,sigma,p_olev_vtight,.false.,.true.,fail)
 !        &      egap,set%etemp,maxiter,maxcycle,etot,g,sigma,p_olev_crude,.false.,.true.,fail)
     mol_xyz_arr(:,:,i) = mol_shifted%xyz  ! store optimized xyz
     etot_arr(i) = etot                    ! store energy etot
     g_arr(i) = NORM2(g)                   ! store gradient norm
+    !@thomas reset coordinates for new shift
+    mol_shifted = mol
     ! check for plausible reference candidate every 4 iterations
     if(MODULO(i,4).eq.0) then
       j=minloc(etot_arr, DIM=1)
@@ -365,7 +384,7 @@ write(*,'(23i4)') topo%nb(20,:)
   else
     write(*,'(a,i4,a)') 'Could not find plausible candidate for reference structure in ', &
          & nruns-1,' searches.'
-    write(*,*) 'Lowest lying crude optimized structure is:'
+    write(*,*) 'Lowest lying crude optimized structure is:',minval(etot_arr)
     write(*,'(3f20.12)') mol_xyz_arr(:,:,minloc(etot_arr, DIM=1))
     !@thomas TODO env%warning does not show up, env%error leads to SIGSEGV
   endif
@@ -407,10 +426,10 @@ write(*,'(23i4)') topo%nb(20,:)
   !             for final GFN-FF optimization below
 write(*,*) 'in converter nb:'     
 write(*,'(10i4)') calc2%topo%nb(20,:)
-!  calc2%topo%bpair = topo%bpair
-!  calc2%topo%alphanb = topo%alphanb
-!  calc2%topo%nbond = topo%nbond
-!  calc2%topo%blist = topo%blist
+  calc2%topo%bpair = topo%bpair
+  calc2%topo%alphanb = topo%alphanb
+  calc2%topo%nbond = topo%nbond
+  calc2%topo%blist = topo%blist
   ! GFN-FF optimization of best candidate
   call geometry_optimization &
       &     (env,mol,chk,calc2,   &
