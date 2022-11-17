@@ -124,6 +124,10 @@ module xtb_gfnff_topology
    type :: Tffml
      real(wp), allocatable :: eatoms(:) ! atom wise energy calculated in gfnff_eg
      real(wp), allocatable :: q(:)  ! GFN-FF charges (are taken from nlist in gfnff_eg)
+     real(wp), allocatable :: angle(:)  ! angle for triplet given in topo%alist
+     real(wp), allocatable :: eangl(:)  ! bend energy for triplet given in topo%alist
+     real(wp), allocatable :: dist(:)  ! distance for bond in blist
+     real(wp), allocatable :: phi_tors(:)  ! dihedral angle for tors in tlist
      !> mapping of atom indices from reference to original input and vice versa
      integer, allocatable :: ref2o(:), o2ref(:)  
    end type Tffml

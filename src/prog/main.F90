@@ -73,7 +73,7 @@ module xtb_prog_main
    use xtb_xtb_gfn2
    use xtb_main_setup
    use xtb_main_defaults, only : initDefaults
-   use xtb_main_json, only : main_json, write_json_gfnff_lists
+   use xtb_main_json, only : main_json, write_json_gfnff_lists, write_gfnff_ml_feats_json
    use xtb_geoopt
    use xtb_metadynamic
    use xtb_biaspath
@@ -913,11 +913,6 @@ subroutine xtbMain(env, argParser)
          call calc_ML_correction(env,calc%ffml,fname,calc%topo,chk%nlist,mol)
      end select
    endif
-   select type(calc)
-   type is(TGFFCalculator)
-     deallocate(calc%ffml%eatoms) !@thomas_ffml
-     deallocate(calc%ffml%q) !@thomas_ffml
-   end select
 
 
    ! ------------------------------------------------------------------------
@@ -992,6 +987,20 @@ subroutine xtbMain(env, argParser)
       call stop_timing(6)
    endif
 
+   ! ------------------------------------------------------------------------
+   !> write ML features to JSON file 
+!@thomas delete start TODO
+     select type(calc)
+       type is(TGFFCalculator)
+         call write_gfnff_ml_feats_json(mol%n,calc%topo,calc%ffml,chk%nlist,mol,etot)
+     end select
+!@thomas delete end TODO
+!@thomas move deallocation up again
+   select type(calc)
+   type is(TGFFCalculator)
+     deallocate(calc%ffml%eatoms) !@thomas_ffml
+     deallocate(calc%ffml%q) !@thomas_ffml
+   end select
 
    ! ------------------------------------------------------------------------
    !  path finder

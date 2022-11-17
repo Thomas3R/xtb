@@ -91,6 +91,8 @@ contains
 
       real*8 edisp,ees,ebond,eangl,etors,erep,ehb,exb,ebatm,eext
       real*8 tmp_eatoms(n) !@thomas_ffml delete not needed
+      real*8, allocatable :: tmp_angle(:), tmp_eangl(:), tmp_phitors(:)
+      real*8 :: phitors, anglbend
       real*8 :: gsolv, gborn, ghb, gsasa, gshift
       
       integer i,j,k,l,m,ij,nd3
@@ -449,25 +451,35 @@ contains
 
       if (pr) call timer%measure(8,'bend and torsion')
       if(topo%nangl.gt.0)then
-         !$omp parallel do default(none) reduction (+:eangl, tmp_eatoms, g) &
+        allocate(tmp_angle(topo%nangl), source=0.0d0)
+        allocate(tmp_eangl(topo%nangl), source=0.0d0)
+        if(.not.allocated(ffml%eangl)) allocate(ffml%eangl(topo%nangl), source=0.0_wp)
+        if(.not.allocated(ffml%angle)) allocate(ffml%angle(topo%nangl), source=0.0_wp)
+         !$omp parallel do default(none) reduction (+:eangl, tmp_eatoms, tmp_eangl, tmp_angle, g) &
          !$omp shared(n, at, xyz, topo, param) &
-         !$omp private(m, j, i, k, etmp, g3tmp)
+         !$omp private(m, j, i, k, etmp, g3tmp, anglbend)
          do m=1,topo%nangl
             j = topo%alist(1,m)
             i = topo%alist(2,m)
             k = topo%alist(3,m)
-            call egbend(m,j,i,k,n,at,xyz,etmp,g3tmp,param,topo)
+            call egbend(m,j,i,k,n,at,xyz,etmp,g3tmp,param,topo,anglbend)
             g(1:3,j)=g(1:3,j)+g3tmp(1:3,1)
             g(1:3,i)=g(1:3,i)+g3tmp(1:3,2)
             g(1:3,k)=g(1:3,k)+g3tmp(1:3,3)
 
             eangl=eangl+etmp
+            tmp_eangl(m) = etmp
+            tmp_angle(m) = anglbend
             tmp_eatoms(j)=tmp_eatoms(j)+etmp*1.0_wp/3.0_wp
             tmp_eatoms(i)=tmp_eatoms(i)+etmp*1.0_wp/3.0_wp
             tmp_eatoms(k)=tmp_eatoms(k)+etmp*1.0_wp/3.0_wp
 
          enddo
          !$omp end parallel do
+         ffml%eangl=tmp_eangl
+         ffml%angle=tmp_angle
+         deallocate(tmp_eangl)
+         deallocate(tmp_angle)
       endif
 
 !!!!!!!!!!!!!!!!!!
@@ -475,27 +487,32 @@ contains
 !!!!!!!!!!!!!!!!!!
 
       if(topo%ntors.gt.0)then
-         !$omp parallel do default(none) reduction(+:etors, tmp_eatoms, g) &
+         allocate(tmp_phitors(topo%ntors), source=0.0d0)
+         if(.not.allocated(ffml%phi_tors)) allocate(ffml%phi_tors(topo%ntors), source=0.0_wp)
+         !$omp parallel do default(none) reduction(+:etors, tmp_eatoms, tmp_phitors, g) &
          !$omp shared(param, topo, n, at, xyz) &
-         !$omp private(m, i, j, k, l, etmp, g4tmp)
+         !$omp private(m, i, j, k, l, etmp, g4tmp, phitors)
          do m=1,topo%ntors
             i=topo%tlist(1,m)
             j=topo%tlist(2,m)
             k=topo%tlist(3,m)
             l=topo%tlist(4,m)
-            call egtors(m,i,j,k,l,n,at,xyz,etmp,g4tmp,param,topo)
+            call egtors(m,i,j,k,l,n,at,xyz,etmp,g4tmp,param,topo,phitors)
             g(1:3,i)=g(1:3,i)+g4tmp(1:3,1)
             g(1:3,j)=g(1:3,j)+g4tmp(1:3,2)
             g(1:3,k)=g(1:3,k)+g4tmp(1:3,3)
             g(1:3,l)=g(1:3,l)+g4tmp(1:3,4)
             etors=etors+etmp
 
+            tmp_phitors(m) = phitors
             tmp_eatoms(i)=tmp_eatoms(i)+etmp*0.25_wp
             tmp_eatoms(j)=tmp_eatoms(j)+etmp*0.25_wp
             tmp_eatoms(k)=tmp_eatoms(k)+etmp*0.25_wp
             tmp_eatoms(l)=tmp_eatoms(l)+etmp*0.25_wp
          enddo
          !$omp end parallel do
+         ffml%phi_tors = tmp_phitors
+         deallocate(tmp_phitors)
       endif
       if (pr) call timer%measure(8)
 
@@ -896,11 +913,12 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      subroutine egbend(m,j,i,k,n,at,xyz,e,g,param,topo)
+      subroutine egbend(m,j,i,k,n,at,xyz,e,g,param,topo,angle)
       use xtb_mctc_constants
       implicit none
       type(TGFFData), intent(in) :: param
       type(TGFFTopology), intent(in) :: topo
+      real*8, intent(out) :: angle
       integer m,n,at(n)
       integer i,j,k
       real*8 xyz(3,n),g(3,3),e
@@ -929,6 +947,7 @@ contains
          call impsc(vab,vcb,cosa)
          cosa = dble(min(1.0d0,max(-1.0d0,cosa)))
          theta= dacos(cosa)
+         angle = theta
 
          call gfnffdampa(at(i),at(j),rab2,dampij,damp2ij,param)
          call gfnffdampa(at(k),at(j),rcb2,dampjk,damp2jk,param)
@@ -1083,11 +1102,12 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      subroutine egtors(m,i,j,k,l,n,at,xyz,e,g,param,topo)
+      subroutine egtors(m,i,j,k,l,n,at,xyz,e,g,param,topo,phitors)
       use xtb_mctc_constants
       implicit none
       type(TGFFData), intent(in) :: param
       type(TGFFTopology), intent(in) :: topo
+      real*8, intent(out) :: phitors
       integer m,n,at(n)
       integer i,j,k,l
       real*8 xyz(3,n),g(3,4),e
@@ -1117,6 +1137,7 @@ contains
          damp= dampjk*dampij*dampkl
          phi=valijklff(n,xyz,i,j,k,l)
          call dphidr  (n,xyz,i,j,k,l,phi,dda,ddb,ddc,ddd)
+         phitors = phi
          dphi1=phi-phi0
          c1=rn*dphi1+pi
          x1cos=cos(c1)

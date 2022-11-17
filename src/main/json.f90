@@ -447,4 +447,227 @@ contains
     call close_file(iunit)
 
   end subroutine write_json_gfnff_lists
+
+  subroutine write_gfnff_ml_feats_json(n, topo, ffml, nlist, mol, energy)
+    use xtb_gfnff_topology, only: TGFFTopology
+    use xtb_gfnff_neighbourlist, only: TGFFNeighbourList
+    use xtb_gfnff_topology, only: TPrintTopo, Tffml
+    use xtb_type_molecule, only: TMolecule
+    use xtb_mctc_accuracy, only : wp
+    include 'xtb_version.fh'
+    !> gfnff topology lists
+    type(TGFFTopology), intent(in) :: topo
+    type(Tffml), intent(in) :: ffml
+    !> gfnff neighbourlist
+    type(TGFFNeighbourList), intent(in) :: nlist
+    type(TMolecule), intent(in) :: mol
+    real(wp), intent(in) :: energy
+    character(len=:), allocatable :: cmdline
+    integer :: iunit, j, n, l
+
+    call open_file(iunit, 'gfnff_ml_features.json', 'w')
+    ! header
+    write (iunit, '("{")')
+
+    ! total energy (scalar)
+    write (iunit, '(3x,''"etot":'',*(f25.15,","))') energy
+
+    ! xyz (3, n)  coordinates (for distances)
+    write (iunit, '(3x,''"molxyz":'',"[")')
+    do j = 1, mol%n - 1
+      write (iunit, '(3x,"[",*(f25.15,:,","))', advance='no') mol%xyz(:, j)
+      write (iunit, '("],")')
+    end do
+    write (iunit, '(3x,"[",*(f25.15,:,","),"]",/)', advance='no') mol%xyz(:, mol%n)
+    write (iunit, '("]")')
+    write (iunit, '(3x,"],")')
+
+    ! at(n)
+    write (iunit, '(3x,''"molat":'',"[")')
+    do j = 1, mol%n - 1
+      write (iunit, '(3x,"[",*(i8,:,","))', advance='no') mol%at(j)
+      write (iunit, '("],")')
+    end do
+    write (iunit, '(3x,"[",*(i8,:,","),"]",/)', advance='no') mol%at(mol%n)
+    write (iunit, '("]")')
+    write (iunit, '(3x,"],")')
+
+    ! blist(2,nbond)
+    write (iunit, '(3x,''"topoblist":'',"[")')
+    do j = 1, topo%nbond - 1
+      write (iunit, '(3x,"[",*(i8,:,","))', advance='no') topo%blist(:, j)
+      write (iunit, '("],")')
+    end do
+    write (iunit, '(3x,"[",*(i8,:,","),"]",/)', advance='no') topo%blist(:, topo%nbond)
+    write (iunit, '("]")')
+    write (iunit, '(3x,"],")')
+
+    ! alist (3, nangl) ! list with atom triplets that GFN-FF calculates ebend for
+    write (iunit, '(3x,''"topoalist":'',"[")')
+    do j = 1, topo%nangl - 1
+      write (iunit, '(3x,"[",*(i8,:,","))', advance='no') topo%alist(:, j)
+      write (iunit, '("],")')
+    end do
+    write (iunit, '(3x,"[",*(i8,:,","),"]",/)', advance='no') topo%alist(:, topo%nangl)
+    write (iunit, '("]")')
+    write (iunit, '(3x,"],")')
+
+    ! angle (nangl) ! angle for atomtriplets from alist
+    write (iunit, '(3x,''"ffmlangle":'',"[")')
+    do j = 1, topo%nangl - 1
+      write (iunit, '(3x,"[",*(f25.15,:,","))', advance='no') ffml%angle(j)
+      write (iunit, '("],")')
+    end do
+    write (iunit, '(3x,"[",*(f25.15,:,","),"]",/)', advance='no') ffml%angle(topo%nangl)
+    write (iunit, '("]")')
+    write (iunit, '(3x,"],")')
+
+    ! eangle (nangl) ! bend energy for atom triplets from alist
+    write (iunit, '(3x,''"ffmleangl":'',"[")')
+    do j = 1, topo%nangl - 1
+      write (iunit, '(3x,"[",*(f25.15,:,","))', advance='no') ffml%eangl(j)
+      write (iunit, '("],")')
+    end do
+    write (iunit, '(3x,"[",*(f25.15,:,","),"]",/)', advance='no') ffml%eangl(topo%nangl)
+    write (iunit, '("]")')
+    write (iunit, '(3x,"],")')
+
+    ! tlist(5,ntors)
+    write (iunit, '(3x,''"topotlist":'',"[")')
+    do j = 1, topo%ntors - 1
+      write (iunit, '(3x,"[",*(i8,:,","))', advance='no') topo%tlist(:, j)
+      write (iunit, '("],")')
+    end do
+    write (iunit, '(3x,"[",*(i8,:,","),"]",/)', advance='no') topo%tlist(:, topo%ntors)
+    write (iunit, '("]")')
+    write (iunit, '(3x,"],")')
+
+    ! phi_tors (ntors)
+    write (iunit, '(3x,''"ffmlphi_tors":'',"[")')
+    do j = 1, topo%ntors - 1
+      write (iunit, '(3x,"[",*(f25.15,:,","))', advance='no') ffml%phi_tors(j)
+      write (iunit, '("],")')
+    end do
+    write (iunit, '(3x,"[",*(f25.15,:,","),"]",/)', advance='no') ffml%phi_tors(topo%ntors)
+    write (iunit, '("]")')
+    write (iunit, '(3x,"],")')
+
+    ! eatoms(n) atom wise energy
+    write (iunit, '(3x,''"ffmleatoms":'',"[")')
+    do j = 1, mol%n - 1
+      write (iunit, '(3x,"[",*(f25.15,:,","))', advance='no') ffml%eatoms(j)
+      write (iunit, '("],")')
+    end do
+    write (iunit, '(3x,"[",*(f25.15,:,","),"]",/)', advance='no') ffml%eatoms(n)
+    write (iunit, '("]")')
+    write (iunit, '(3x,"],")')
+
+    ! hyb(n) 
+    write (iunit, '(3x,''"topohyb":'',"[")')
+    do j = 1, mol%n - 1
+      write (iunit, '(3x,"[",*(i8,:,","))', advance='no') topo%hyb(j)
+      write (iunit, '("],")')
+    end do
+    write (iunit, '(3x,"[",*(i8,:,","),"]",/)', advance='no') topo%hyb(mol%n)
+    write (iunit, '("]")')
+    write (iunit, '(3x,"],")')
+
+    ! q(n)   EEQ charges
+    write (iunit, '(3x,''"nlistq":'',"[")')
+    do j = 1, mol%n - 1
+      write (iunit, '(3x,"[",*(f25.15,:,","))', advance='no') nlist%q(j)
+      write (iunit, '("],")')
+    end do
+    write (iunit, '(3x,"[",*(f25.15,:,","),"]",/)', advance='no') nlist%q(n)
+    write (iunit, '("]")')
+    write (iunit, '(3x,"],")')
+
+    ! hblist1  A..H..B
+    write (iunit, '(3x,''"hbl":'',"[")') !> HBs loose
+    if (nlist%nhb1 .ge. 1) then
+      do j = 1, nlist%nhb1 - 1
+        write (iunit, '(3x,"[",*(i7,:,","))', advance='no') nlist%hblist1(:, j)
+        write (iunit, '("],")')
+      end do
+      write (iunit, '(3x,"[",*(i7,:,","),"]",/)', advance='no') nlist%hblist1(:, nlist%nhb1)
+      write (iunit, '("]")')
+      write (iunit, '(3x,"],")')
+    else
+      write (iunit, '(3x,"[",*(i7,:,""))', advance='no') 0
+      write (iunit, '("]")')
+      write (iunit, '(3x,"],")')
+    end if
+
+    ! hblist2  A-H..B
+    write (iunit, '(3x,''"hbb":'',"[")') !> HBs bonded
+    if (nlist%nhb2 .ge. 1) then
+      do j = 1, nlist%nhb2 - 1
+        write (iunit, '(3x,"[",*(i7,:,","))', advance='no') nlist%hblist2(:, j)
+        write (iunit, '("],")')
+      end do
+      write (iunit, '(3x,"[",*(i7,:,","),"]",/)', advance='no') nlist%hblist2(:, nlist%nhb2)
+      write (iunit, '("]")')
+      write (iunit, '(3x,"],")')
+    else
+      write (iunit, '(3x,"[",*(i7,:,""))', advance='no') 0
+      write (iunit, '("]")')
+      write (iunit, '(3x,"],")')
+    end if
+
+    ! hblist3  A-X..B halogen bond
+    write (iunit, '(3x,''"xb":'',"[")') !> XBs
+    if (nlist%nxb .ge. 1) then
+      do j = 1, nlist%nxb - 1
+        write (iunit, '(3x,"[",*(i7,:,","))', advance='no') nlist%hblist3(:, j)
+        write (iunit, '("],")')
+      end do
+      write (iunit, '(3x,"[",*(i7,:,","),"]",/)', advance='no') nlist%hblist3(:, nlist%nxb)
+      write (iunit, '("]")')
+      write (iunit, '(3x,"],")')
+    else
+      write (iunit, '(3x,"[",*(i7,:,""))', advance='no') 0
+      write (iunit, '("]")')
+      write (iunit, '(3x,"],")')
+    end if
+
+    ! energies for hb1 hb2 hb3
+    write (iunit, '(3x,''"hbl_e":'',"[")')
+    do j = 1, nlist%nhb1 - 1
+      write (iunit, '(3x,"[",*(f25.15,:,","))', advance='no') nlist%hbe1(j)
+      write (iunit, '("],")')
+    end do
+    write (iunit, '(3x,"[",*(f25.15,:,","),"]",/)', advance='no') nlist%hbe1(nlist%nhb1)
+    write (iunit, '("]")')
+    write (iunit, '(3x,"],")')
+
+    write (iunit, '(3x,''"hbb_e":'',"[")')
+    do j = 1, nlist%nhb2 - 1
+      write (iunit, '(3x,"[",*(f25.15,:,","))', advance='no') nlist%hbe2(j)
+      write (iunit, '("],")')
+    end do
+    write (iunit, '(3x,"[",*(f25.15,:,","),"]",/)', advance='no') nlist%hbe2(nlist%nhb2)
+    write (iunit, '("]")')
+    write (iunit, '(3x,"],")')
+
+    write (iunit, '(3x,''"xb_e":'',"[")')
+    do j = 1, nlist%nxb - 1
+      write (iunit, '(3x,"[",*(f25.15,:,","))', advance='no') nlist%hbe3(j)
+      write (iunit, '("],")')
+    end do
+    write (iunit, '(3x,"[",*(f25.15,:,","),"]",/)', advance='no') nlist%hbe3(nlist%nxb)
+    write (iunit, '("]")')
+    write (iunit, '(3x,"],")')
+
+    ! footer
+    call get_command(length=l)
+    allocate (character(len=l) :: cmdline)
+    call get_command(cmdline)
+    write (iunit, '(3x,''"program call":'',1x,''"'',a,''",'')') cmdline
+    write (iunit, '(3x,''"method": "GFN-FF"'',",")')
+    write (iunit, '(3x,a)') '"xtb version": "'//version//'"'
+    write (iunit, '("}")')
+    call close_file(iunit)
+
+  end subroutine write_gfnff_ml_feats_json
+
 end module xtb_main_json
