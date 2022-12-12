@@ -91,7 +91,7 @@ contains
 
       real*8 edisp,ees,ebond,eangl,etors,erep,ehb,exb,ebatm,eext
       real*8 tmp_eatoms(n) !@thomas_ffml delete not needed
-      real*8, allocatable :: tmp_angle(:), tmp_eangl(:), tmp_phitors(:)
+      real*8, allocatable :: tmp_angle(:), tmp_eangl(:), tmp_phitors(:), tmp_etors(:)
       real*8 :: phitors, anglbend
       real*8 :: gsolv, gborn, ghb, gsasa, gshift
       
@@ -487,9 +487,9 @@ contains
 !!!!!!!!!!!!!!!!!!
 
       if(topo%ntors.gt.0)then
-         allocate(tmp_phitors(topo%ntors), source=0.0d0)
+         allocate(tmp_phitors(topo%ntors),tmp_etors(topo%ntors), source=0.0d0)
          if(.not.allocated(ffml%phi_tors)) allocate(ffml%phi_tors(topo%ntors), source=0.0_wp)
-         !$omp parallel do default(none) reduction(+:etors, tmp_eatoms, tmp_phitors, g) &
+         !$omp parallel do default(none) reduction(+:etors, tmp_eatoms, tmp_phitors, tmp_etors, g) &
          !$omp shared(param, topo, n, at, xyz) &
          !$omp private(m, i, j, k, l, etmp, g4tmp, phitors)
          do m=1,topo%ntors
@@ -505,6 +505,7 @@ contains
             etors=etors+etmp
 
             tmp_phitors(m) = phitors
+            tmp_etors(m) = etmp
             tmp_eatoms(i)=tmp_eatoms(i)+etmp*0.25_wp
             tmp_eatoms(j)=tmp_eatoms(j)+etmp*0.25_wp
             tmp_eatoms(k)=tmp_eatoms(k)+etmp*0.25_wp
@@ -512,6 +513,7 @@ contains
          enddo
          !$omp end parallel do
          ffml%phi_tors = tmp_phitors
+         ffml%etors = tmp_etors
          deallocate(tmp_phitors)
       endif
       if (pr) call timer%measure(8)
@@ -1164,6 +1166,7 @@ contains
          call gfnffdampt(at(j),at(l),rjl,dampjl,damp2jl,param)
          damp= dampjk*dampij*dampjl
          phi=omega(n,xyz,i,j,k,l)
+         phitors = phi
          call domegadr(n,xyz,i,j,k,l,phi,dda,ddb,ddc,ddd)
          if(topo%tlist(5,m).eq.0)then  ! phi0=0 case
          dphi1=phi-phi0

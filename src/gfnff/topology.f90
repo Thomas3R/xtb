@@ -128,6 +128,7 @@ module xtb_gfnff_topology
      real(wp), allocatable :: eangl(:)  ! bend energy for triplet given in topo%alist
      real(wp), allocatable :: dist(:)  ! distance for bond in blist
      real(wp), allocatable :: phi_tors(:)  ! dihedral angle for tors in tlist
+     real(wp), allocatable :: etors(:)  ! torsion energy per tors in tlist
      !> mapping of atom indices from reference to original input and vice versa
      integer, allocatable :: ref2o(:), o2ref(:)  
    end type Tffml

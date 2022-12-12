@@ -552,6 +552,16 @@ contains
     write (iunit, '("]")')
     write (iunit, '(3x,"],")')
 
+    ! phi_tors (ntors)
+    write (iunit, '(3x,''"ffmletors":'',"[")')
+    do j = 1, topo%ntors - 1
+      write (iunit, '(3x,"[",*(f25.15,:,","))', advance='no') ffml%etors(j)
+      write (iunit, '("],")')
+    end do
+    write (iunit, '(3x,"[",*(f25.15,:,","),"]",/)', advance='no') ffml%etors(topo%ntors)
+    write (iunit, '("]")')
+    write (iunit, '(3x,"],")')
+
     ! eatoms(n) atom wise energy
     write (iunit, '(3x,''"ffmleatoms":'',"[")')
     do j = 1, mol%n - 1
