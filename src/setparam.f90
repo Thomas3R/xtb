@@ -118,6 +118,8 @@ module xtb_setparam
    integer, parameter :: p_ext_mopac     = 12
    integer, parameter :: p_ext_gfnff     = 13
    integer, parameter :: p_ext_oniom     = 14
+   integer, parameter :: p_ext_iff       = 15
+   integer, parameter :: p_ext_tblite    = 16
 
    integer, parameter :: p_run_scc    =   2
    integer, parameter :: p_run_grad   =   3
@@ -308,8 +310,10 @@ module xtb_setparam
    character(len=:),allocatable  :: property_file
    logical  :: pr_esp = .false.
    character(len=:),allocatable  :: esp_gridfile
+   character(len=10) :: lmoinfo_fname='xtblmoinfo'
    logical  :: pr_molden_input = .false.
    logical  :: pr_lmo = .false.
+   logical  :: pr_local = .true.
    logical  :: pr_density = .false.
    logical  :: pr_spin_population = .false.
    logical  :: pr_spin_density = .false.
@@ -355,7 +359,7 @@ module xtb_setparam
    ! pcharge input file
    character(len=:),allocatable :: pcem_file
    character(len=:),allocatable :: pcem_grad
-   logical  :: pcem_orca   = .true.
+   logical  :: pcem_orca   = .false.
 !  controls which interactions included in the Fockian depend on the
 !  external point charges
    logical  :: pcem_l_es   = .true.

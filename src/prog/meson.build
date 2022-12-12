@@ -17,7 +17,9 @@
 
 prog += files(
   'argparser.f90',
+  'dock.f90',
   'info.f90',
+  'irmod.f90',
   'main.F90',
   'primary.f90',
   'submodules.f90',

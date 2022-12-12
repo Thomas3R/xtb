@@ -838,10 +838,24 @@ subroutine scf(env, mol, wfn, basis, pcem, xtbData, solvation, &
       ! LMO /xTB-IFF
       if (set%pr_lmo) then
          tmp=wfn%emo*evtoau
+         allocate(res%iff_results)
+!         if(.not.set%pr_local) then
+            call res%iff_results%allocateIFFResults(mol%n)
+!         endif
          call local(mol%n, mol%at, basis%nbf, basis%nao, wfn%ihomoa, mol%xyz, &
-            & mol%z, wfn%focc, S, wfn%P, wfn%C, tmp, wfn%q, eel, &
-            & allocated(solvation), basis)
+               & mol%z, wfn%focc, S, wfn%P, wfn%C, tmp, wfn%q, eel, &
+               & allocated(solvation), basis, res)
       endif
+
+      if (allocated(solvation)) then
+         select type(solvation)
+         type is (TCosmo)
+            call open_file(ich, "xtb.cosmo", 'w')
+            call solvation%writeCosmoFile(ich, mol%at, mol%sym, mol%xyz, &
+               & wfn%q, eel + ep + exb + merge(embd, ed + embd, allocated(scD4)))
+            call close_file(ich)
+         end select
+      end if
 
    endif printing
 

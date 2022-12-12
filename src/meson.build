@@ -18,16 +18,19 @@
 subdir('api')
 subdir('coulomb')
 subdir('disp')
+subdir('docking')
 subdir('extern')
 subdir('freq')
 subdir('gfnff')
 subdir('io')
+subdir('iff')
 subdir('main')
 subdir('mctc')
 subdir('param')
 subdir('prog')
-subdir('type')
 subdir('solv')
+subdir('tblite')
+subdir('type')
 subdir('xtb')
 
 srcs += files(
@@ -63,6 +66,7 @@ srcs += files(
   'eqrot.f90',
   'esp.f',
   'expire.f90',
+  'features.F90',
   'filetools.F90',
   'fixparam.f90',
   'foden.f90',

@@ -42,6 +42,12 @@ module xtb_prog_submodules
       !> Force field topology generator
       integer :: topo = 4
 
+      !> Fragment docking
+      integer :: dock = 5
+
+      !> IR spectra from DFTB+ output
+      integer :: ir = 6
+
    end type TSubmoduleEnum
 
    !> Actual enumerator for the submodules
@@ -72,6 +78,12 @@ function getSubmodule(argument) result(submod)
 
    case('topo')
       submod = xtbSubmodule%topo
+
+   case('dock')
+      submod = xtbSubmodule%dock
+
+   case('ir')
+      submod = xtbSubmodule%ir
 
    end select
 

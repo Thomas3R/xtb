@@ -15,10 +15,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with xtb.  If not, see <https://www.gnu.org/licenses/>.
 
-if(NOT TARGET "test-drive::test-drive")
-  find_package("test-drive" REQUIRED)
-endif()
-
 set(dir "${CMAKE_CURRENT_SOURCE_DIR}")
 
 set(
@@ -28,18 +24,21 @@ set(
   "coulomb"
   "dftd3"
   "dftd4"
+  "docking"
   "eeq"
   "gfn0"
   "gfn1"
   "gfn2"
   "gfnff"
   "hessian"
+  "iff"
   "latticepoint"
   "molecule"
   "pbc-tools"
   "peeq"
   "repulsion"
   "symmetry"
+  "tblite"
   "thermo"
   "wsc"
 )
