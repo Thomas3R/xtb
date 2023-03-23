@@ -36,7 +36,8 @@ subroutine collect_gfnff(testsuite)
       new_unittest("mindless-solvation", test_gfnff_mindless_solvation), &
       new_unittest("scaleup", test_gfnff_scaleup), &
       new_unittest("pdb", test_gfnff_pdb), &
-      new_unittest("sdf", test_gfnff_sdf) &
+      new_unittest("sdf", test_gfnff_sdf), &
+      new_unittest("sTors", test_gfnff_sTors) &
       ]
 
 end subroutine collect_gfnff
@@ -85,7 +86,6 @@ subroutine test_gfnff_sp(error)
 
    real(wp) :: etot
    real(wp), allocatable :: g(:,:)
-   character(len=:),allocatable :: fnv
    integer  :: ipar
 
    logical  :: exist
@@ -167,7 +167,6 @@ subroutine test_gfnff_hb(error)
 
    real(wp) :: etot, sigma(3,3), gap
    real(wp), allocatable :: g(:,:)
-   character(len=:),allocatable :: fnv
    integer  :: ipar
 
    logical  :: exist
@@ -252,7 +251,6 @@ subroutine test_gfnff_gbsa(error)
 
    real(wp) :: etot, sigma(3,3), gap
    real(wp), allocatable :: g(:,:)
-   character(len=:),allocatable :: fnv
    integer  :: ipar
 
    logical  :: exist
@@ -664,5 +662,69 @@ subroutine test_gfnff_sdf(error)
    end do
 
 end subroutine test_gfnff_sdf
+
+
+subroutine test_gfnff_sTors(error)
+   use xtb_mctc_accuracy, only : wp
+   use xtb_type_environment, only : TEnvironment, init
+   use xtb_type_molecule, only : TMolecule, init
+   use xtb_type_restart, only : TRestart
+   use xtb_type_data, only : scc_results
+   use xtb_gfnff_calculator, only : TGFFCalculator, newGFFCalculator
+   type(error_type), allocatable, intent(out) :: error
+   real(wp),parameter :: thr = 1.0e-10_wp
+   integer, parameter :: nat = 24
+   integer, parameter :: at(nat) = [6,6,6,6,6,6,6,6,6,6,1,1,1,1,1,6,6,6,6,1,1,1,1,1]
+   real(wp),parameter :: xyz_90deg(3,nat) = reshape(&
+ & [ 0.12221046521086,     -0.18428060879072,     -0.18228335321925, &
+ &   0.08719935751451,      5.06934264864803,     -0.02596342432341, &
+ &   0.05862849528555,      7.73783974652046,      0.05030230548575, &
+ &   0.01714557716835,     10.04447582324356,      0.09558343882246, &
+ &  -0.05467390788965,     12.71311174633902,      0.12275322431892, &
+ &  -0.20538202599422,     17.96696324989117,      0.14912037349084, &
+ &   0.38600952337566,      1.05589695490632,      2.09655055210417, &
+ &   0.36806809162917,      3.66091335947587,      2.17577574230531, &
+ &  -0.17627836003229,      3.79019343351047,     -2.30731069858995, &
+ &  -0.15876168543117,      1.18521393433998,     -2.38355912874481, &
+ &   0.57068098362246,      4.63644382768439,      3.94994346419868, &
+ &  -0.39899283704489,      4.86683074160063,     -4.01961044497274, &
+ &  -0.36845748162765,      0.21868589745569,     -4.16419003211043, &
+ &   0.60468930865183,     -0.01220950278351,      3.81700694550659, &
+ &   0.13428923974828,     -2.22022905929283,     -0.24275611192154, &
+ &  -2.33559903380114,     13.99152079091287,      0.39339738367985, &
+ &  -2.40904523048017,     16.59662855523279,      0.40626672044313, &
+ &   2.07317972215781,     16.72751717136842,     -0.12039246709389, &
+ &   2.14941270777385,     14.12239687588147,     -0.13439200150746, &
+ &   3.92262419962440,     13.14736939854927,     -0.34756365566827, &
+ &  -4.05081478876813,     12.91424923342831,      0.58887031289661, &
+ &  -4.19029750843902,     17.56262564121961,      0.61321130804928, &
+ &  -0.26411451372717,     20.00298583529164,      0.15708326877090, &
+ &   3.79528771049569,     17.79620492382913,     -0.32250296890584], &
+ &  shape(xyz_90deg))
+
+   type(TMolecule)     :: mol
+   type(TEnvironment)  :: env
+   type(TRestart)      :: chk
+   type(scc_results)   :: res_gff
+   type(TGFFCalculator) :: calc
+
+   real(wp) :: etot, sigma(3,3), gap
+   real(wp), allocatable :: g(:,:)
+
+   logical  :: exist
+   real(wp), parameter :: etors_90deg = 0.000751787752_wp
+
+   call init(env)
+   call init(mol,at,xyz_90deg)
+
+   call newGFFCalculator(env, mol, calc, '.param_gfnff.xtb', .false.)
+   call env%checkpoint("GFN-FF parameter setup failed")
+
+   allocate( g(3,mol%n), source = 0.0_wp )
+
+   call calc%singlepoint(env, mol, chk, 2, .false., etot, g, sigma, gap, res_gff)
+   call check_(error, res_gff%e_tors, etors_90deg, thr=thr)
+
+end subroutine test_gfnff_sTors
 
 end module test_gfnff
