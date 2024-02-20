@@ -74,9 +74,9 @@ module xtb_gfnff_param
       & 0.967863_wp, 1.002901_wp, 1.037940_wp, 1.072978_wp, 1.108017_wp, &
       & 1.143055_wp, 1.178094_wp, 1.213132_wp, 1.205076_wp, 1.075529_wp, &
       & 1.206919_wp, 1.303658_wp, 1.332656_wp, 1.179317_wp, 0.789115_wp, &
-      & 0.798704_wp, 1.127797_wp, 1.127863_wp, 1.127928_wp, 1.127994_wp, &
+      & 0.798704_wp, 1.127797_wp, 1.127863_wp, 1.127928_wp, 1.127994_wp, & ! 60
       & 1.128059_wp, 1.128125_wp, 1.128190_wp, 1.128256_wp, 1.128322_wp, &
-      & 1.128387_wp, 1.128453_wp, 1.128518_wp, 1.128584_wp, 1.128649_wp, &
+      & 1.128387_wp, 1.128453_wp, 1.128518_wp, 1.128584_wp, 1.128649_wp, & ! 70 Tm, Yb
       & 1.128715_wp, 1.128780_wp, 1.129764_wp, 1.130747_wp, 1.131731_wp, &
       & 1.132714_wp, 1.133698_wp, 1.134681_wp, 1.135665_wp, 1.136648_wp, &
       & 1.061832_wp, 1.053084_wp, 1.207830_wp, 1.236314_wp, 1.310129_wp, &
@@ -295,11 +295,11 @@ module xtb_gfnff_param
       & 0.303838_wp, 0.302073_wp, 0.300309_wp, 0.298544_wp, 0.296779_wp, &
       & 0.295015_wp, 0.293250_wp, 0.291486_wp, 0.289721_wp, 0.287957_wp, & ! 70
       & 0.286192_wp, 0.284427_wp, 0.257959_wp, 0.231490_wp, 0.205022_wp, &
-      & 0.178553_wp, 0.152085_wp, 0.125616_wp, 0.099147_wp, 0.072679_wp, &
+      & 0.178553_wp, 0.152085_wp, 0.125616_wp, 0.099147_wp, 0.072679_wp, & ! 80
       & 0.203077_wp, 0.169346_wp, 0.090568_wp, 0.144762_wp, 0.231884_wp, &
-      &  0.400000_wp,  0.090741_wp,  0.076783_wp,  0.310896_wp,  0.309131_wp, &
+      &  0.400000_wp,  0.090741_wp,  0.076783_wp,  0.310896_wp,  0.309131_wp, & ! 90
       &  0.307367_wp,  0.305602_wp,  0.303838_wp,  0.302073_wp,  0.300309_wp, &
-      &  0.298544_wp,  0.296779_wp,  0.295015_wp,  0.293250_wp,  0.291486_wp, &
+      &  0.298544_wp,  0.296779_wp,  0.295015_wp,  0.293250_wp,  0.291486_wp, & ! 100
       &  0.289721_wp,  0.287957_wp,  0.286192_wp &
       &]
 
@@ -638,7 +638,7 @@ module xtb_gfnff_param
      if (.not.allocated(topo%xbatABl)) allocate( topo%xbatABl(5,topo%natxbAB), source = 0 )
 
      if (.not.allocated(neigh%blist)) allocate( neigh%blist(3,neigh%nbond), source = 0 )
-     if (.not.allocated(topo%nr_hb)) allocate( topo%nr_hb(topo%nbond_blist), source = 0 )
+     if (.not.allocated(neigh%nr_hb)) allocate( neigh%nr_hb(neigh%nbond), source = 0 )
      if (.not.allocated(topo%bond_hb_AH)) allocate( topo%bond_hb_AH(4,topo%bond_hb_nr), source = 0 )
      if (.not.allocated(topo%bond_hb_B)) allocate( topo%bond_hb_B(2,topo%b_max,topo%bond_hb_nr), source = 0 )
      if (.not.allocated(topo%bond_hb_Bn)) allocate( topo%bond_hb_Bn(topo%bond_hb_nr), source = 0 )

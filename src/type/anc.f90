@@ -141,13 +141,11 @@ subroutine generate_anc_blowup(self,iunit,xyz,hess,pr,linear)
 
    real(wp),parameter   :: thr1 = 1.0e-10_wp
    real(wp),parameter   :: thr2 = 1.0e-11_wp
-   integer, parameter   :: maxtry = 4
    integer  :: i,itry
    integer  :: nvar
    integer  :: info
    integer  :: lwork
    integer  :: liwork
-   logical  :: fail
    integer, allocatable :: iwork(:)
    real(wp) :: elow,damp,thr
    real(wp),allocatable :: aux(:)
@@ -171,7 +169,6 @@ subroutine generate_anc_blowup(self,iunit,xyz,hess,pr,linear)
 !   do i = 1, self%n3
 !      if (abs(self%eigv(i)) > thr1 ) elow = min(elow,self%eigv(i))
 !   enddo
-
    damp = max(self%hlow - elow,0.0_wp) 
    where(abs(self%eigv) > thr2) self%eigv = self%eigv + damp
 !   do i = 1, self%n3
@@ -187,32 +184,20 @@ subroutine generate_anc_blowup(self,iunit,xyz,hess,pr,linear)
       write(iunit,*)
    endif
 
-   fail = .true.
-   get_anc: do itry = 1, maxtry
-      self%B = 0.0_wp
-      self%hess = 0.0_wp
-      nvar = 0
-      ! take largest (positive) first
-      do i = self%n3, 1, -1
-         if (abs(self%eigv(i)) > thr .and. nvar < self%nvar) then
-            nvar = nvar+1
-            self%B(:,nvar) = hess(:,i)
-            self%hess(nvar+nvar*(nvar-1)/2) = &
-               min(max(self%eigv(i),self%hlow),self%hmax)
-         endif
-      enddo
-
-      if (nvar.ne.self%nvar) then
-         thr = thr * 0.1_wp
-         cycle get_anc
+   self%B = 0.0_wp
+   self%hess = 0.0_wp
+   nvar = 0
+   ! take largest (positive) first
+   do i = self%n3, 1, -1
+      if (abs(self%eigv(i)) > 0.0_wp .and. nvar < self%nvar) then
+         nvar = nvar+1
+         self%B(:,nvar) = hess(:,i)
+         self%hess(nvar+nvar*(nvar-1)/2) = &
+            min(max(self%eigv(i),self%hlow),self%hmax)
       endif
+   enddo
 
-      fail = .false.
-      exit get_anc
-
-   enddo get_anc
-
-   if (fail) then
+   if (nvar.ne.self%nvar) then
       write(*,*) 'nvar, selv%nvar',nvar,self%nvar
       call raise('E',"ANC generation failed!")
    end if
