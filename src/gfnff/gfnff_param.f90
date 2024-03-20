@@ -568,8 +568,43 @@ module xtb_gfnff_param
      param%angl2(:) = angl2_angewChem2020
      param%tors(:) = tors_angewChem2020
      param%tors2(:) = tors2_angewChem2020
+     call loadAcParameters(param)
    end subroutine loadGFNFFAngewChem2020
 
+
+   subroutine loadAcParameters(param)
+     type(TGFFData), intent(inout) :: param
+     character(len=256) :: filename
+     integer :: i, unit_number
+     real(wp) :: chi, gam, cnf, alp
+     logical :: file_exists
+     filename = '/home/thor/bin/gfnff_AcEEQ_param.txt'
+     inquire(file=filename, exist=file_exists)
+     if (file_exists) then
+       ! Open the file
+       open(unit=unit_number, file=filename,status='old',action='read') 
+       ! Read the values from the file
+       do i = 89, 103
+         read(unit_number, *) chi, gam, cnf, alp
+         param%chi(i) = chi
+         param%gam(i) = gam
+         param%cnf(i) = cnf
+         param%alp(i) = alp
+       end do
+       write(*,*) 'Loaded Ac EEQ parameters from file.'
+       write(*,'(a,15f10.6)') 'chi:', param%chi(89:103)
+       write(*,'(a,15f10.6)') 'gam:', param%gam(89:103)
+       write(*,'(a,15f10.6)') 'cnf:', param%cnf(89:103)
+       write(*,'(a,15f10.6)') 'alp:', param%alp(89:103)
+  
+       ! Close the file
+       close(unit_number)
+     else
+       ! Handle the case when the file doesn't exist
+       print *, 'Error: File does not exist: ', trim(filename)
+     end if
+
+   end subroutine loadAcParameters
 
    subroutine gfnff_read_param(iunit, param)
      use xtb_mctc_accuracy, only : wp 
