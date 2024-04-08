@@ -55,7 +55,7 @@ subroutine gfnff_ini(env,pr,makeneighbor,mol,gen,param,topo,neigh,efield,accurac
       integer ineig,jneig,nrot,bbtyp,ringtyp,nn1,nn2,hybi,hybj,pis,ka,nh,jdum,hcalc,nc
       integer ringsi,ringsj,ringsk,ringl,npi,nelpi,picount,npiall,maxtors,rings4,nheav
       integer nm,maxhb,ki,n13,current,ncarbo,mtyp1,mtyp2
-      integer ind3(3),sr(20),cr(10,20),niel(86)
+      integer ind3(3),sr(20),cr(10,20),niel(103)
       integer qloop_count,nf,nsi,nmet,nhi,nhj,ifrag
       integer hbA,hbH,Bat,atB,Aat,Hat
       integer AHB_nr
@@ -167,7 +167,7 @@ subroutine gfnff_ini(env,pr,makeneighbor,mol,gen,param,topo,neigh,efield,accurac
       enddo
 
       write(env%unit,'(10x,"Pauling EN used:")')
-      do i=1,86
+      do i=1,103
          if(niel(i).gt.0) write(env%unit,'(10x,"Z :",i2,"  EN :",f6.2)') i,param%en(i)
       enddo
 
@@ -2302,14 +2302,16 @@ use xtb_mctc_accuracy, only : wp
    real(wp),intent(in) :: q
 
    real(wp)           :: zeta,qmod
-   real(wp),parameter :: zeff(86) = (/ &
+   real(wp),parameter :: zeff(103) = (/ &
    &   1,                                                 2,  & ! H-He
    &   3, 4,                               5, 6, 7, 8, 9,10,  & ! Li-Ne
    &  11,12,                              13,14,15,16,17,18,  & ! Na-Ar
    &  19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,  & ! K-Kr
    &   9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,  & ! Rb-Xe
    &   9,10,11,30,31,32,33,34,35,36,37,38,39,40,41,42,43,  & ! Cs-Lu
-   &  12,13,14,15,16,17,18,19,20,21,22,23,24,25,26/)  ! Hf-Rn
+   &  12,13,14,15,16,17,18,19,20,21,22,23,24,25,26, &  ! Hf-Rn
+   &   9,10,11,30,31,32,33,34,35,36,37,38,39,40,41,42,43  & ! Fr-Lr @thomas TODO just copied Cs-Lu
+   &/)
 !! Semiempirical Evaluation of the GlobalHardness of the Atoms of 103
 !! Elements of the Periodic Table Using the Most Probable Radii as
 !! their Size Descriptors DULAL C. GHOSH, NAZMUL ISLAM 2009 in
@@ -2318,7 +2320,7 @@ use xtb_mctc_accuracy, only : wp
 !! values in the paper multiplied by two because
 !! (ii:ii)=(IP-EA)=d^2 E/dN^2 but the hardness
 !! definition they use is 1/2d^2 E/dN^2 (in Eh)
-   real(wp),parameter :: c(1:86) = (/ &
+   real(wp),parameter :: c(1:103) = (/ &
   &0.47259288_wp,0.92203391_wp,0.17452888_wp,0.25700733_wp,0.33949086_wp,0.42195412_wp, & ! H-C
   &0.50438193_wp,0.58691863_wp,0.66931351_wp,0.75191607_wp,0.17964105_wp,0.22157276_wp, & ! N-Mg
   &0.26348578_wp,0.30539645_wp,0.34734014_wp,0.38924725_wp,0.43115670_wp,0.47308269_wp, & ! Al-Ar
@@ -2333,7 +2335,11 @@ use xtb_mctc_accuracy, only : wp
   &0.25932503_wp,0.27676094_wp,0.29418231_wp,0.31159587_wp,0.32902274_wp,0.34592298_wp, & ! Ho-Hf
   &0.36388048_wp,0.38130586_wp,0.39877476_wp,0.41614298_wp,0.43364510_wp,0.45104014_wp, & ! Ta-Pt
   &0.46848986_wp,0.48584550_wp,0.12526730_wp,0.14268677_wp,0.16011615_wp,0.17755889_wp, & ! Au-Po
-  &0.19497557_wp,0.21240778_wp/)
+  &0.19497557_wp,0.21240778_wp,&
+  &0.15476297_wp,0.17218265_wp,0.18961288_wp,0.20704760_wp,0.22446752_wp,0.24189645_wp, & ! Fr-U @thomas TODO
+  &0.15476297_wp,0.17218265_wp,0.18961288_wp,0.20704760_wp,0.22446752_wp,0.24189645_wp, & ! Np-Cf @thomas TODO
+  &0.15476297_wp,0.17218265_wp,0.18961288_wp,0.20704760_wp,0.22446752_wp & ! Es-Lr @thomas TODO
+  &/)
 
    intrinsic :: exp
 

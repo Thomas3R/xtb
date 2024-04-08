@@ -394,6 +394,7 @@ contains
       real(wp), allocatable, intent(out) :: distances(:,:,:)
       class(TNeigh), intent(in) :: neigh
       type(TMolecule), intent(in) :: mol
+      real(wp) :: dist_vec(3)
       integer :: i,j, iTr, n
 
       n=mol%n
@@ -402,7 +403,8 @@ contains
        do iTr=1, neigh%nTrans 
         do i=1, n
           do j=1, n
-            distances(j,i,iTr) = vecNorm(mol%xyz(:,j)-mol%xyz(:,i)+neigh%transVec(:,iTr))
+            dist_vec=mol%xyz(:,j)-mol%xyz(:,i)+neigh%transVec(:,iTr)
+            distances(j,i,iTr) = vecNorm(dist_vec)
           enddo
         enddo  
        enddo
