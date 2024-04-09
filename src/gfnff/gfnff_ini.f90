@@ -281,6 +281,9 @@ subroutine gfnff_ini(env,pr,makeneighbor,mol,gen,param,topo,neigh,efield,accurac
          & gen%rthr,gen%rthr2,gen%linthr,mchar,topo%hyb,itag,param,topo,mol,neigh,nb_call)
       nb_call = .true.
 
+      !> gfnff_topo adjustments
+      call gfnff_topo_changes(env, neigh)
+
       do i=1,mol%n
          imetal(i)=param%metal(mol%at(i))
          ! Sn,Pb,Bi, with small CN are better described as non-metals
@@ -2354,5 +2357,36 @@ end function zeta
 
 
 end subroutine gfnff_ini
+
+subroutine gfnff_topo_changes(env, neigh)
+   use xtb_type_environment, only : TEnvironment
+   use xtb_gfnff_neighbor, only : TNeigh
+   use xtb_setparam
+   type(TEnvironment), intent(inout) :: env
+   type(TNeigh), intent(inout) :: neigh ! main type for introducing PBC
+   character(len=*), parameter :: source = 'gfnff_ini'
+   integer :: int_tmp(40)
+   integer :: i,j,idx,iTr,d1,d2,numnb,nnb
+
+   ! check if hardcoded size of ffnb is still up to date
+   if (size(set%ffnb, dim=1).ne.neigh%numnb) call env%error('The array set%ffnb has not been adjusted to changes in neigh%numnb.', source)
+   ! only do something if there are changes stored in set%ffnb
+   if(set%ffnb(1,1).ne.0) then
+      d2=size(set%ffnb, dim=2)
+      do i=1, d2
+         if (set%ffnb(1,i).eq.0) exit
+         idx=set%ffnb(1,i)
+         int_tmp = set%ffnb(2:41,i)
+         neigh%nb(1:40,idx,1) = int_tmp
+         neigh%nb(neigh%numnb,idx,1) = set%ffnb(42,i)
+      end do
+      write(env%unit,*) ''
+      write(env%unit,*) 'The neighborlist has been adjusted according to the input file.'
+      write(env%unit,*) ''
+   end if
+
+
+end subroutine gfnff_topo_changes
+
 
 end module xtb_gfnff_ini

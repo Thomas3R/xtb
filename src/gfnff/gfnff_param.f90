@@ -171,10 +171,10 @@ module xtb_gfnff_param
       & 0.289763_wp, 0.269894_wp, 0.250025_wp, 0.230155_wp, 0.210286_wp, &
       & 0.190417_wp, 0.170548_wp, 0.150679_wp, 0.192977_wp, 0.173411_wp, &
       & 0.186907_wp, 0.192891_wp, 0.223202_wp, 0.172577_wp, 0.150000_wp, &
-      & 0.150000_wp, 0.370682_wp, 0.368511_wp, 0.366339_wp, 0.364168_wp, &
-      & 0.361996_wp, 0.359825_wp, 0.357654_wp, 0.355482_wp, 0.353311_wp, &
-      & 0.351139_wp, 0.348968_wp, 0.346797_wp, 0.344625_wp, 0.342454_wp, &
-      & 0.340282_wp, 0.338111_wp, 0.305540_wp, 0.272969_wp, 0.240398_wp, &
+      & 0.150000_wp, 0.685762_wp, 0.663320_wp, 0.659410_wp, 0.655502_wp, &
+      & 0.651593_wp, 0.647685_wp, 0.643777_wp, 0.533223_wp, 0.635960_wp, &
+      & 0.632050_wp, 0.523452_wp, 0.520196_wp, 0.516938_wp, 0.616417_wp, &
+      & 0.510423_wp, 0.338111_wp, 0.305540_wp, 0.272969_wp, 0.240398_wp, &
       & 0.207828_wp, 0.175257_wp, 0.142686_wp, 0.110115_wp, 0.077544_wp, &
       & 0.108597_wp, 0.148422_wp, 0.183731_wp, 0.192274_wp, 0.127706_wp, &
       &  0.086756_wp,  0.150000_wp,  0.150000_wp,  0.370682_wp,  0.368511_wp, &
@@ -567,43 +567,8 @@ module xtb_gfnff_param
      param%angl2(:) = angl2_angewChem2020
      param%tors(:) = tors_angewChem2020
      param%tors2(:) = tors2_angewChem2020
-     call loadAcParameters(param)
    end subroutine loadGFNFFAngewChem2020
 
-
-   subroutine loadAcParameters(param)
-     type(TGFFData), intent(inout) :: param
-     character(len=256) :: filename
-     integer :: i, unit_number
-     real(wp) :: chi, gam, cnf, alp
-     logical :: file_exists
-     filename = '/home/thor/bin/gfnff_AcEEQ_param.txt'
-     inquire(file=filename, exist=file_exists)
-     if (file_exists) then
-       ! Open the file
-       open(unit=unit_number, file=filename,status='old',action='read') 
-       ! Read the values from the file
-       do i = 89, 103
-         read(unit_number, *) chi, gam, cnf, alp
-         param%chi(i) = chi
-         param%gam(i) = gam
-         param%cnf(i) = cnf
-         param%alp(i) = alp
-       end do
-       write(*,*) 'Loaded Ac EEQ parameters from file.'
-       write(*,'(a,15f10.6)') 'chi:', param%chi(89:103)
-       write(*,'(a,15f10.6)') 'gam:', param%gam(89:103)
-       write(*,'(a,15f10.6)') 'cnf:', param%cnf(89:103)
-       write(*,'(a,15f10.6)') 'alp:', param%alp(89:103)
-  
-       ! Close the file
-       close(unit_number)
-     else
-       ! Handle the case when the file doesn't exist
-       print *, 'Error: File does not exist: ', trim(filename)
-     end if
-
-   end subroutine loadAcParameters
 
    subroutine gfnff_read_param(iunit, param)
      use xtb_mctc_accuracy, only : wp 

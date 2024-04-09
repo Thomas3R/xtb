@@ -2751,7 +2751,7 @@ end module xtb_modelhessian
       c6(32)=17.10; c6(33)=16.37; c6(34)=12.64; c6(35)=12.47; c6(36)=12.01
       c6(37:48)=24.67; c6(49)=37.32; c6(50)=38.71; c6(51)=38.44
       c6(52)=31.74; c6(53)=31.50; c6(54)=29.99
-      c6(55)=40.0 ! use same c6 for all atom types > 86
+      c6(55)=40.0
 
 !hjw threshold reduced
       rZero=1.0d-10

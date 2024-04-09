@@ -317,6 +317,5 @@ c--------
          rab(k)=(ra+rb)*ff
          enddo
       enddo
-      write(*,'(a,15f8.3)') 'used r0:',r0(89:103)
 
       end subroutine gfnffrab
