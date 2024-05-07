@@ -2182,6 +2182,8 @@ endif
         call specialTorsList(nn, mol, topo, neigh, topo%sTorsl)
       endif
 
+      ! special treatment for hydrogen bound to heavy atoms (Z>=57)
+      call adjust_NB_LnH_AcH(param, mol, topo, neigh)
 
       if(pr)then
       write(env%unit,*)
@@ -2190,6 +2192,52 @@ endif
       endif
 
 contains
+
+! remove hydrogen bonds from topology if bound to Ln or Ac and topo%qa(H)>-0.0281
+subroutine adjust_NB_LnH_AcH(param, mol, topo, neigh)
+  type(TGFFData), intent(in) :: param
+  type(TMolecule), intent(in) :: mol   ! # molecule type
+  type(TGFFTopology), intent(in) :: topo
+  type(TNeigh), intent(inout) :: neigh ! main type for introducing PBC
+  integer nb_tmp(neigh%numnb)
+  integer :: i,iTr,idx,inb,l,k
+
+  ! loop over all atoms
+  do i=1, mol%n
+    ! only apply changes for Ln and Ac
+    if ((mol%at(i).ge.57.and.mol%at(i).le.71).or.(mol%at(i).ge.89.and.mol%at(i).le.103)) then
+      ! loop over all cells
+      do iTr=1, neigh%numctr
+        ! loop over all neighbors
+        do idx=1, neigh%nb(neigh%numnb, i, iTr)
+          inb=neigh%nb(idx,i,iTr) ! atom index of neighbor of i
+          ! check if neighbor is H
+          if (mol%at(inb).eq.1) then
+            ! remove hydrogen as neighbor if charge is gt threshold
+            if (topo%qa(inb).gt.-0.0281) then
+              ! setup copy of neighbor list for this Ac or Ln
+              nb_tmp = neigh%nb(:,i,iTr)
+              nb_tmp(neigh%numnb) = neigh%nb(neigh%numnb,i,iTr) - 1
+              nb_tmp(idx) = 0
+              ! reset neigh%nb
+              neigh%nb(1:neigh%numnb-2,i,iTr)=0
+              ! update neigh%nb with copied nb list
+              neigh%nb(neigh%numnb,i,iTr) = nb_tmp(neigh%numnb) ! number neighbors
+              l=0
+              do k=1, neigh%numnb-2
+                if (nb_tmp(k).ne.0) then
+                  l = l + 1
+                  neigh%nb(l,i,iTr) = nb_tmp(k)
+                end if
+              enddo
+            end if
+          end if
+        enddo
+      enddo
+    end if
+  enddo
+
+end subroutine adjust_NB_LnH_AcH
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! special treatment for rotation around carbon triple bonds

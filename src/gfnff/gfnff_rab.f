@@ -39,6 +39,7 @@
       real*8 cnfak(103),r0(103),en(103)
       real*8 ra,rb,k1,k2,den,ff
       real(wp) :: p(6,2)
+      real*8 scaleF(103,103)
 
 c     fitted on PBExa-3c geom set by SG, 9/2018
 c     H B C N O F SI P S CL GE AS SE BR SN SB TE I together (and for glob par)
@@ -126,6 +127,28 @@ c     parameter)
      . 0.07700000 ! 103
      ./
 
+      ! setup factor for Fluorine-Ln or F-Ac bonds
+      scaleF = 1.0
+      scaleF(57:71,9) =0.90338164
+      scaleF(89:103,9)=0.90338164
+      scaleF(9,57:71) =0.90338164
+      scaleF(9,89:103)=0.90338164
+      ! for Chlorine
+      scaleF(57:71,17) =1.0190114
+      scaleF(89:103,17)=1.0190114
+      scaleF(17,57:71) =1.0190114
+      scaleF(17,89:103)=1.0190114
+      ! for Bromine
+      scaleF(57:71,35) =1.0425532
+      scaleF(89:103,35)=1.0425532
+      scaleF(35,57:71) =1.0425532
+      scaleF(35,89:103)=1.0425532
+      ! for Iodine
+      scaleF(57:71,53) =1.0551948
+      scaleF(89:103,53)=1.0551948
+      scaleF(53,57:71) =1.0551948
+      scaleF(53,89:103)=1.0551948
+
 c     global EN polynominal parameters x 10^3
       p(1,1)=    29.84522887
       p(2,1)=    -1.70549806
@@ -155,11 +178,11 @@ c--------
          k1=0.005d0*(p(ir,1)+p(jr,1))
          k2=0.005d0*(p(ir,2)+p(jr,2))
          ff=1.0d0-k1*den-k2*den**2
-         rab(k) =(ra+rb+rab(k))*ff
-         rabdcn(1,k)=cnfak(ati)*ff
-         rabdcn(2,k)=cnfak(atj)*ff
+         rab(k) =(ra+rb+rab(k))*ff*scaleF(ati,atj)
+         rabdcn(1,k)=cnfak(ati)*ff*scaleF(ati,atj)
+         rabdcn(2,k)=cnfak(atj)*ff*scaleF(ati,atj)
          do m=1,n
-            grab(1:3,m,k)=ff*(cnfak(ati)*dcn(1:3,m,i)
+            grab(1:3,m,k)=scaleF(ati,atj)*ff*(cnfak(ati)*dcn(1:3,m,i)
      .                       +cnfak(atj)*dcn(1:3,m,j))
          enddo
 c--------
@@ -205,6 +228,7 @@ c--------
 
       real*8 cnfak(103),r0(103),en(103)
       real*8 ra,rb,k1,k2,den,ff,p(6,2)
+      real*8 scaleF(103,103)
       data en /
      . 2.30085633, 2.78445145, 1.52956084, 1.51714704, 2.20568300,
      . 2.49640820, 2.81007174, 4.51078438, 4.67476223, 3.29383610,
@@ -281,6 +305,28 @@ c--------
      . 0.07700000 ! 103
      ./
 
+      ! setup factor for Fluorine-Ln or F-Ac bonds
+      scaleF = 1.0
+      scaleF(57:71,9) =0.90338164
+      scaleF(89:103,9)=0.90338164
+      scaleF(9,57:71) =0.90338164
+      scaleF(9,89:103)=0.90338164
+      ! for Chlorine
+      scaleF(57:71,17) =1.0190114
+      scaleF(89:103,17)=1.0190114
+      scaleF(17,57:71) =1.0190114
+      scaleF(17,89:103)=1.0190114
+      ! for Bromine
+      scaleF(57:71,35) =1.0425532
+      scaleF(89:103,35)=1.0425532
+      scaleF(35,57:71) =1.0425532
+      scaleF(35,89:103)=1.0425532
+      ! for Iodine
+      scaleF(57:71,53) =1.0551948
+      scaleF(89:103,53)=1.0551948
+      scaleF(53,57:71) =1.0551948
+      scaleF(53,89:103)=1.0551948
+
       p(1,1)=    29.84522887
       p(2,1)=    -1.70549806
       p(3,1)=     6.54013762
@@ -307,7 +353,7 @@ c--------
          k1=0.005d0*(p(ir,1)+p(jr,1))
          k2=0.005d0*(p(ir,2)+p(jr,2))
          ff=1.0d0-k1*den-k2*den**2
-         rab(k)=(ra+rb)*ff
+         rab(k)=(ra+rb)*ff*scaleF(ati,atj)
          enddo
       enddo
 
