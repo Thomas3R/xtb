@@ -2203,18 +2203,18 @@ endif
 
 contains
 
-! remove hydrogen bonds from topology if bound to Ln or Ac and topo%qa(H)>-0.0281
+! remove hydrogen bonds from topology if bound to Ln or An and topo%qa(H)>-0.0281
 subroutine adjust_NB_LnH_AnH(param, mol, topo, neigh)
   type(TGFFData), intent(in) :: param
   type(TMolecule), intent(in) :: mol   ! # molecule type
   type(TGFFTopology), intent(in) :: topo
   type(TNeigh), intent(inout) :: neigh ! main type for introducing PBC
   integer nb_tmp(neigh%numnb)
-  integer :: i,iTr,idx,inb,l,k
+  integer :: i,iTr,iTrH,idx,inb,l,k,m
 
   ! loop over all atoms
   do i=1, mol%n
-    ! only apply changes for Ln and Ac
+    ! only apply changes for Ln and An
     if ((mol%at(i).ge.57.and.mol%at(i).le.71).or.(mol%at(i).ge.89.and.mol%at(i).le.103)) then
       ! loop over all cells
       do iTr=1, neigh%numctr
@@ -2225,7 +2225,7 @@ subroutine adjust_NB_LnH_AnH(param, mol, topo, neigh)
           if (mol%at(inb).eq.1) then
             ! remove hydrogen as neighbor if charge is gt threshold
             if (topo%qa(inb).gt.-0.0282) then
-              ! setup copy of neighbor list for this Ac or Ln
+              ! setup copy of neighbor list for this An or Ln
               nb_tmp = neigh%nb(:,i,iTr)
               nb_tmp(neigh%numnb) = neigh%nb(neigh%numnb,i,iTr) - 1
               nb_tmp(idx) = 0
@@ -2240,7 +2240,28 @@ subroutine adjust_NB_LnH_AnH(param, mol, topo, neigh)
                   neigh%nb(l,i,iTr) = nb_tmp(k)
                 end if
               enddo
-            end if
+              ! setup copy of neighbor list for this H
+              do iTrH=1, neigh%numctr
+                do k=1, neigh%nb(neigh%numnb,inb,iTrH)
+                  if (neigh%nb(k,inb,iTrH).eq.i) then
+                     nb_tmp = neigh%nb(:,inb,iTrH)
+                     nb_tmp(neigh%numnb) = neigh%nb(neigh%numnb,inb,iTrH) - 1
+                     nb_tmp(k) = 0
+                     ! reset neigh%nb
+                     neigh%nb(1:neigh%numnb-2,inb,iTrH)=0
+                     ! update neigh%nb with copied nb list
+                     neigh%nb(neigh%numnb,inb,iTrH) = nb_tmp(neigh%numnb) ! number neighbors
+                     l=0
+                     do m=1, neigh%numnb-2
+                       if (nb_tmp(m).ne.0) then
+                         l = l + 1
+                         neigh%nb(l,inb,iTrH) = nb_tmp(m)
+                       end if
+                     enddo
+                  endif
+                enddo
+              enddo
+            end if ! if topo%qa < -0.0282
           end if
         enddo
       enddo
