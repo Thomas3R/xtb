@@ -113,7 +113,7 @@ subroutine gfnff_ini(env,pr,makeneighbor,mol,gen,param,topo,neigh,efield,accurac
       character(len=255) atmp
       integer  :: ich, err
       real(wp) :: dispthr, cnthr, repthr, hbthr1, hbthr2
-      logical :: exitRun, nb_call
+      logical :: exitRun, nb_call, adjLnAn
 
       call gfnff_thresholds(accuracy, dispthr, cnthr, repthr, hbthr1, hbthr2)
 
@@ -266,6 +266,14 @@ subroutine gfnff_ini(env,pr,makeneighbor,mol,gen,param,topo,neigh,efield,accurac
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! neighbor list, hyb and ring info
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      ! check if Ln or An in coordinates
+      adjLnAn=.false.
+      do i=1, mol%n
+         if ((mol%at(i).ge.57.and.mol%at(i).le.71).or.(mol%at(i).ge.89.and.mol%at(i).le.103)) then
+            adjLnAn=.true.
+            exit
+         endif
+      enddo
 
       topo%qa = 0
       qloop_count = 0
@@ -273,7 +281,7 @@ subroutine gfnff_ini(env,pr,makeneighbor,mol,gen,param,topo,neigh,efield,accurac
 
 !111   continue
 !  do the loop only if factor is significant
-   do while (qloop_count.lt.2.and.gen%rqshrink.gt.1.d-3)
+   do while ((qloop_count.lt.2.and.gen%rqshrink.gt.1.d-3).or.adjLnAn)
 
       write(env%unit,'(10x,"----------------------------------------")')
       write(env%unit,'(10x,"generating topology and atomic info file ...")')
@@ -281,6 +289,11 @@ subroutine gfnff_ini(env,pr,makeneighbor,mol,gen,param,topo,neigh,efield,accurac
          & gen%rthr,gen%rthr2,gen%linthr,mchar,topo%hyb,itag,param,topo,mol,neigh,nb_call)
       nb_call = .true.
 
+      ! special treatment for hydrogen bound to Ln or An
+      if (adjLnAn.and.allocated(topo%qa).and.qloop_count.ne.0) then
+         call adjust_NB_LnH_AnH(param, mol, topo, neigh)
+         adjLnAn=.false.
+      endif
       !> gfnff_topo adjustments
       call gfnff_topo_changes(env, neigh)
 
@@ -651,7 +664,7 @@ subroutine gfnff_ini(env,pr,makeneighbor,mol,gen,param,topo,neigh,efield,accurac
         enddo
       endif
       qloop_count=qloop_count+1
-      if(qloop_count.lt.2.and.gen%rqshrink.gt.1.d-3) then  ! do the loop only if factor is significant
+      if((qloop_count.lt.2.and.gen%rqshrink.gt.1.d-3).or.adjLnAn) then  ! do the loop only if factor is significant
          deallocate(btyp,pibo,pimvec,neigh%blist)
 !         goto 111
       endif
@@ -2182,9 +2195,6 @@ endif
         call specialTorsList(nn, mol, topo, neigh, topo%sTorsl)
       endif
 
-      ! special treatment for hydrogen bound to heavy atoms (Z>=57)
-      call adjust_NB_LnH_AcH(param, mol, topo, neigh)
-
       if(pr)then
       write(env%unit,*)
       write(env%unit,*) 'GFN-FF setup done.'
@@ -2194,7 +2204,7 @@ endif
 contains
 
 ! remove hydrogen bonds from topology if bound to Ln or Ac and topo%qa(H)>-0.0281
-subroutine adjust_NB_LnH_AcH(param, mol, topo, neigh)
+subroutine adjust_NB_LnH_AnH(param, mol, topo, neigh)
   type(TGFFData), intent(in) :: param
   type(TMolecule), intent(in) :: mol   ! # molecule type
   type(TGFFTopology), intent(in) :: topo
@@ -2214,7 +2224,7 @@ subroutine adjust_NB_LnH_AcH(param, mol, topo, neigh)
           ! check if neighbor is H
           if (mol%at(inb).eq.1) then
             ! remove hydrogen as neighbor if charge is gt threshold
-            if (topo%qa(inb).gt.-0.0281) then
+            if (topo%qa(inb).gt.-0.0282) then
               ! setup copy of neighbor list for this Ac or Ln
               nb_tmp = neigh%nb(:,i,iTr)
               nb_tmp(neigh%numnb) = neigh%nb(neigh%numnb,i,iTr) - 1
@@ -2237,7 +2247,7 @@ subroutine adjust_NB_LnH_AcH(param, mol, topo, neigh)
     end if
   enddo
 
-end subroutine adjust_NB_LnH_AcH
+end subroutine adjust_NB_LnH_AnH
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! special treatment for rotation around carbon triple bonds
