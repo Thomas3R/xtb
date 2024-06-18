@@ -2210,7 +2210,7 @@ subroutine adjust_NB_LnH_AnH(param, mol, topo, neigh)
   type(TGFFTopology), intent(in) :: topo
   type(TNeigh), intent(inout) :: neigh ! main type for introducing PBC
   integer nb_tmp(neigh%numnb)
-  integer :: i,iTr,iTrH,idx,inb,l,k,m
+  integer :: i,iTr,iTrH,idx,inb,l,k,m,nnb,count_idx
 
   ! loop over all atoms
   do i=1, mol%n
@@ -2219,8 +2219,12 @@ subroutine adjust_NB_LnH_AnH(param, mol, topo, neigh)
       ! loop over all cells
       do iTr=1, neigh%numctr
         ! loop over all neighbors
-        do idx=1, neigh%nb(neigh%numnb, i, iTr)
+        nnb = neigh%nb(neigh%numnb, i, iTr)
+        idx=0
+        do count_idx=1, nnb
+          idx = idx + 1
           inb=neigh%nb(idx,i,iTr) ! atom index of neighbor of i
+          if (inb.eq.0) cycle
           ! check if neighbor is H
           if (mol%at(inb).eq.1) then
             ! remove hydrogen as neighbor if charge is gt threshold
@@ -2261,6 +2265,8 @@ subroutine adjust_NB_LnH_AnH(param, mol, topo, neigh)
                   endif
                 enddo
               enddo
+              ! since the current element was removed from neigh%nb, idx should be reduced by one
+              idx = idx - 1
             end if ! if topo%qa < -0.0282
           end if
         enddo
