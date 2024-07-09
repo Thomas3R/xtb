@@ -85,7 +85,6 @@ subroutine gfnff_neigh(env,makeneighbor,natoms,at,xyz,rab,fq,f_in,f2_in,lintr, &
       fat(76)=1.02
       fat(82)=1.06
       fat(83)=0.95
-      !@thomas TODO fat for lanthanides and actinides ??
 
       allocate(cn(natoms),rtmp(natoms*(natoms+1)/2),nbdum2(20,natoms))
       rtmp = 0.0

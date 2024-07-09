@@ -492,7 +492,7 @@ module xtb_gfnff_param
 
 !    3B bond prefactors and D3 stuff
      k=0
-     do i=1,103 !@thomas was 86 before
+     do i=1,103
         dum=dble(i)
         param%zb3atm(i)=-dum*gen%batmscal**(1.d0/3.d0)  ! inlcude pre-factor
         do j=1,i
@@ -593,7 +593,7 @@ module xtb_gfnff_param
      param%normcn(:) = normcn
      param%repz(:) = repz
 
-     do i=1,103 !@thomas param file already adjusted ?? TODO
+     do i=1,103
          read(iunit,'(a)')atmp
          call readl(atmp,xx,nn)
          param%chi(i)=xx(2)
