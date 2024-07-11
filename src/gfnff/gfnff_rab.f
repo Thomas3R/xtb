@@ -129,10 +129,10 @@ c     parameter)
 
       ! setup factor for Fluorine-Ln or F-Ac bonds
       scaleF = 1.0
-      scaleF(57:71,9) =0.96728972
-      scaleF(89:103,9)=0.96728972
-      scaleF(9,57:71) =0.96728972
-      scaleF(9,89:103)=0.96728972
+      scaleF(57:71,9) =0.93533568
+      scaleF(89:103,9)=0.93533568
+      scaleF(9,57:71) =0.93533568
+      scaleF(9,89:103)=0.93533568
       ! for Chlorine
       scaleF(57:71,17) =1.0190114
       scaleF(89:103,17)=1.0190114
@@ -307,10 +307,10 @@ c--------
 
       ! setup factor for Fluorine-Ln or F-Ac bonds
       scaleF = 1.0
-      scaleF(57:71,9) =0.96728972
-      scaleF(89:103,9)=0.96728972
-      scaleF(9,57:71) =0.96728972
-      scaleF(9,89:103)=0.96728972
+      scaleF(57:71,9) =0.93533568
+      scaleF(89:103,9)=0.93533568
+      scaleF(9,57:71) =0.93533568
+      scaleF(9,89:103)=0.93533568
       ! for Chlorine
       scaleF(57:71,17) =1.0190114
       scaleF(89:103,17)=1.0190114
