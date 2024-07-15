@@ -207,6 +207,7 @@ subroutine generate_anc_blowup(self,iunit,xyz,hess,pr,linear)
 
    real(wp),parameter   :: thr1 = 1.0e-10_wp
    real(wp),parameter   :: thr2 = 1.0e-11_wp
+   integer, parameter   :: maxtry = 4
    integer  :: i,itry
    integer  :: nvar
    integer  :: info
@@ -281,7 +282,6 @@ subroutine generate_anc_blowup(self,iunit,xyz,hess,pr,linear)
          thr = thr * 0.1_wp
          cycle get_anc
       endif
-   enddo
 
       fail = .false.
       exit get_anc
