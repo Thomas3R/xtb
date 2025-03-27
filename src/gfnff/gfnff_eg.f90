@@ -4039,41 +4039,50 @@ elemental function dCutCN(cn, cut) result(dcnpdcn)
 end function dCutCn
 
 function get_cf(rTrans,gTrans,vol,avgAlp) result(cf)
-  ! output the ewald splitting parameter
+  ! Returns convergence factor (cf) for ewald summation
+  !   such that largest real space contribution (rPart)
+  !   and the largest reciprocal space contribution (gPart)
+  !   are approximately equal.
+  ! The golden section search (GSS) algorithm is applied to find the minimum
+  !   of the absolute value of the difference between gPart and rPart.
+  ! Real space contributions converge quicker with large cf.
+  ! Reciprocal space contributions converge quicker with small cf.
+  !
+  ! Input:
+  !   rTrans: real space translation vectors
+  !   gTrans: reciprocal space translation vectors
+  !   vol:    unit cell volume
+  !   avgAlp: 
+  ! Result: Convergence factor (cf) for ewald summation
+
+  ! convergence factor
   real(wp) :: cf
-  ! parameter from goed_pbc_gfnff ewaldCutD and ewaldCutR
-  integer, parameter :: ewaldCutD(3) = 2
-  integer, parameter :: ewaldCutR(3) = 2
   ! real space lattice vectors
   real(wp), intent(in) :: rTrans(:, :)
   ! reciprocal space lattice vectors
   real(wp), intent(in) :: gTrans(:, :)
   ! unit cell volume 
   real(wp), intent(in) :: vol
-  ! average alphaEEQ value
+  ! average atomic radii
   real(wp), intent(in) :: avgAlp
   ! smallest reciprocal and real space Vectors
   real(wp) :: minG, minR
-  ! approx Value of reciprocal and real part electrostatics
+  ! approx Value of reciprocal (g) and real (r) part electrostatics
   real(wp) :: gPart, rPart
-  ! 
+  ! estimate parameter from average atomic radii
   real(wp) :: gam
-  ! current cf
-  real(wp) :: cfCurr
-  !
-  real(wp) :: lenR, minTmp, gr_diff,diffMin
-  real(wp) :: a(100)
+  ! length of smallest real space vector
+  real(wp) :: lenR
   ! tolerance for golden-section search
   real(wp), parameter :: tol = 1.0e-4_wp
   ! golden ratio
-  real(wp), parameter :: goldr = (1.0_wp+sqrt(2.0_wp))/2.0_wp
+  real(wp), parameter :: goldr = (1.0_wp+sqrt(5.0_wp))/2.0_wp
   ! evaluation points for gss
   real(wp) :: x1, x2, x3, x4
-  ! 
-  integer :: i,j,iter
+  ! loop index
+  integer :: i
 
-
-  cf = 0.14999_wp ! default
+  ! setup parameter estimate for real part
   gam = 1.0_wp/sqrt(2*avgAlp)
 
   ! get smallest real and reciprocal vector
@@ -4086,37 +4095,57 @@ function get_cf(rTrans,gTrans,vol,avgAlp) result(cf)
     endif
   enddo
 
-  ! golden-section search algorithm for convergence factor
-  iter = 0
+  ! golden-section search algorithm for the convergence factor
   x1 = 1.0e-8_wp  ! left margin
   x4 = 2.0e+0_wp  ! right margin
-  x2 = x4 - (x4 - x1)/goldr
-  x3 = x1 + (x4 - x1)/goldr
+  x2 = x4 - (x4 - x1)/goldr ! left trial point
+  x3 = x1 + (x4 - x1)/goldr ! right trial point
   do while ((x4-x1) > tol)
-    iter = iter + 1
+    ! update right margin if left trial point corresponds to smaller value
     if(grFct(x2,minG,minR,vol,gam).lt.grFct(x3,minG,minR,vol,gam))then
       x4 = x3
     else
+    ! update left margin if right trial point corresponds to smaller value
       x1 = x2
     endif
     ! recalculate x2 and x3
     x2 = x4 - (x4 - x1)/goldr
     x3 = x1 + (x4 - x1)/goldr
   enddo
-
+  ! calculate optimal cf as mean of x1 and x4
   cf = (x1 + x4)/2.0_wp
 end function get_cf
 
 
-function grFct(cfCurr, minG, minR, vol, gam) result(gr_diff)
+function grFct(cf_curr, minG, minR, vol, gam) result(gr_diff)
+  ! Returns the absolute value of the difference between
+  !   the largest contribution to the electrostatic energy
+  !   in reciprocal (g) and in real space (r).
+  ! Uses estimate vector length minG and minR
+  ! Gamma parameter is estimated as an average for real space contribution
+  ! 
+  ! Input:
+  !   cf_curr: current convergence factor
+  !   minG:    smallest reciprocal vector
+  !   minR:    smallest real space vector
+  !   vol:     unit cell volume
+  !   gam:     gamma parameter of electrostatic energy
+  ! Result: gr_diff absolute value of difference between gPart and rPart
+
+  ! absolute value of difference between gPart and rPart
   real(wp) :: gr_diff
+  ! current convergence factor
+  real(wp) :: cf_curr
   ! smallest reciprocal and real space Vectors
-  real(wp), intent(in) :: cfCurr,minG, minR, vol, gam
-  ! approx Value of reciprocal and real part electrostatics
+  real(wp), intent(in) :: minG, minR, vol, gam
+  ! approx Value of reciprocal (g) and real (r) part electrostatics
   real(wp) :: gPart, rPart
   
-  gPart = 4.0_wp*pi*exp(-minG**2 /(4.0_wp*cfCurr**2))/(vol*minG**2)
-  rPart = -erf(cfCurr*minR)/minR + erf(gam*minR)/minR
+  ! calculate estimate of largest reciprocal space contribution
+  gPart = 4.0_wp*pi*exp(-minG**2 /(4.0_wp*cf_curr**2))/(vol*minG**2)
+  ! calculate estimate of largest real space contribution
+  rPart = -erf(cf_curr*minR)/minR + erf(gam*minR)/minR
+  ! calculate absolute value of difference between gPart and rPart
   gr_diff = abs(gPart-rPart)
 end function grFct
 
