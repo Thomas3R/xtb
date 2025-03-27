@@ -497,12 +497,8 @@ subroutine peeq &
 !  Fermi smearing
 ! ---------------------------------------
    if(et.gt.0.1_wp)then
-      if (wfn%ihomoa+1.le.nao) then
-         call fermismear(.false.,nao,wfn%ihomoa,et,wfn%emo,wfn%focca,nfoda,efa,ga)
-      endif
-      if (wfn%ihomob+1.le.nao) then
-         call fermismear(.false.,nao,wfn%ihomob,et,wfn%emo,wfn%foccb,nfodb,efb,gb)
-      endif
+      call fermismear(.false.,nao,wfn%ihomoa,et,wfn%emo,wfn%focca,nfoda,efa,ga)
+      call fermismear(.false.,nao,wfn%ihomob,et,wfn%emo,wfn%foccb,nfodb,efb,gb)
       wfn%focc = wfn%focca + wfn%foccb
    endif
    ! create density matrix = save in wfn%P
@@ -671,8 +667,7 @@ pure subroutine drep_grad(repData,mol,trans,erep,gradient,sigma)
    real(wp) :: dtmp
    real(wp), parameter :: rthr = 1600.0_wp
    real(wp) :: w,t(3)
-   integer  :: latrep(3),tx,ty,tz,itr
-   call get_realspace_cutoff(mol%lattice,rthr,latrep)
+   integer  :: tx,ty,tz,itr
    w = 1.0_wp
    ! initialize
    erep = 0.0_wp

@@ -283,7 +283,7 @@ subroutine singlepoint(self, env, mol, chk, printlevel, restart, &
    if (allocated(set%pcem_grad) .and. self%pcem%n > 0) then
       call open_file(ich,set%pcem_grad,'w')
       do i=1,self%pcem%n
-         write(ich,'(3f12.8)')self%pcem%grd(1:3,i)
+         write(ich,'(3f16.12)')self%pcem%grd(1:3,i)
       enddo
       call close_file(ich)
    endif
@@ -321,7 +321,7 @@ subroutine singlepoint(self, env, mol, chk, printlevel, restart, &
       write(env%unit,'(9x,53(":"))')
       write(env%unit,outfmt) "total energy      ", results%e_total,"Eh   "
       if (.not.set%silent.and.allocated(self%solvation)) then
-         write(env%unit,outfmt) "total w/o Gsasa/hb", &
+         write(env%unit,outfmt) "w/o Gsasa/hb/shift", &
             &  results%e_total-results%g_sasa-results%g_hb-results%g_shift, "Eh   "
       endif
       write(env%unit,outfmt) "gradient norm     ", results%gnorm,  "Eh/a0"

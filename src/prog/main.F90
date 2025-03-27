@@ -94,7 +94,7 @@ module xtb_prog_main
    use xtb_oniom, only: oniom_input, TOniomCalculator, calculateCharge
    use xtb_vertical, only: vfukui
    use xtb_tblite_calculator, only: TTBLiteCalculator, TTBLiteInput, &
-         & newTBLiteWavefunction, get_ceh
+         & newTBLiteWavefunction, get_ceh, num_grad_chrg
    use xtb_ptb_calculator, only: TPTBCalculator
    use xtb_solv_cpx, only: TCpcmx
    use xtb_dipro, only: get_jab, jab_input
@@ -420,6 +420,8 @@ contains
       else
          call init_metadyn(mol%n, metaset%maxsave)
       end if
+      !> Initialize the atomic masses with the physical constants
+      atmass = atomic_mass(mol%at) * autoamu ! from splitparam.f90
       call load_rmsdbias(rmsdset, mol%n, mol%at, mol%xyz)
       ! ------------------------------------------------------------------------
       !> CONSTRAINTS & SCANS
@@ -428,7 +430,6 @@ contains
       ! ------------------------------------------------------------------------
       !> get some memory
       allocate (cn(mol%n), sat(mol%n), g(3, mol%n), source=0.0_wp)
-      atmass = atomic_mass(mol%at) * autoamu ! from splitparam.f90
       set%periodic = mol%npbc > 0
       if (mol%npbc == 0) then
          if (set%do_cma_trafo) then
@@ -544,12 +545,12 @@ contains
          select case (set%runtyp)
          case default
             call env%terminate('This is an internal error, please define your runtypes!')
-         case (p_run_scc, p_run_grad, p_run_opt, p_run_hess, p_run_ohess, p_run_bhess, &
+         case (p_run_prescc,p_run_scc, p_run_grad, p_run_opt, p_run_hess, p_run_ohess, p_run_bhess, &
                p_run_md, p_run_omd, p_run_path, p_run_screen, &
                p_run_modef, p_run_mdopt, p_run_metaopt)
             if (set%mode_extrun == p_ext_gfnff) then
                fnv = xfind(p_fname_param_gfnff)
-             elseif (set%mode_extrun .eq. p_ext_ptb) then
+            elseif (set%mode_extrun .eq. p_ext_ptb) then
                   fnv = xfind(p_fname_param_ptb)
             else
                if (set%gfn_method == 0) then
@@ -563,14 +564,18 @@ contains
                end if
             end if
          case (p_run_vip, p_run_vea, p_run_vipea, p_run_vfukui, p_run_vomega)
-            if (set%gfn_method == 0) then
-               fnv = xfind(p_fname_param_gfn0)
-            end if
-            if (set%gfn_method == 1) then
-               fnv = xfind(p_fname_param_gfn1)
-            end if
-            if (set%gfn_method == 2) then
-               fnv = xfind(p_fname_param_gfn2)
+            if (set%mode_extrun .eq. p_ext_ptb) then
+                  fnv = xfind(p_fname_param_ptb)
+            else
+               if (set%gfn_method == 0) then
+                  fnv = xfind(p_fname_param_gfn0)
+               end if
+               if (set%gfn_method == 1) then
+                  fnv = xfind(p_fname_param_gfn1)
+               end if
+               if (set%gfn_method == 2) then
+                  fnv = xfind(p_fname_param_gfn2)
+               end if
             end if
          end select
       end if
@@ -597,10 +602,13 @@ contains
       type is (TxTBCalculator)
          call chk%wfn%allocate(mol%n, calc%basis%nshell, calc%basis%nao)
 
-         ! Make sure number of electrons is initialized an multiplicity is consistent
+         ! Make sure number of electrons is initialized and multiplicity is consistent
          chk%wfn%nel = nint(sum(mol%z) - mol%chrg)
-         chk%wfn%nopen = mol%uhf
-         if (chk%wfn%nopen == 0 .and. mod(chk%wfn%nel, 2) /= 0) chk%wfn%nopen = 1
+         if (mod(mol%uhf, 2) /= mod(chk%wfn%nel, 2)) then
+            call env%terminate("Assigned number of unpaired electrons (flag '--uhf <int>' or <int> in file '.UHF') is not consistent with the total number of electrons")
+         else
+            chk%wfn%nopen = mol%uhf
+         end if
 
          !> EN charges and CN
          if (set%gfn_method < 2) then
@@ -629,8 +637,18 @@ contains
       end select
 
       ! get CEH charges !
-      if (tblite%ceh) &
-         call get_ceh(env,mol,tblite)
+      if (allocated(tblite%ceh)) then
+         ! if numercal charges are requested !
+         if (tblite%ceh%grad) then
+            call num_grad_chrg(env,mol,tblite)
+         ! only charges !
+         else
+            call get_ceh(env,mol,tblite)
+         endif 
+
+         ! stop calculation !
+         call finalize_xtb(env)
+      end if
 
       ! ------------------------------------------------------------------------
       !> printout a header for the exttyp
@@ -821,9 +839,6 @@ contains
             deallocate (set%opt_engine)
             call set_opt(env, 'engine', 'pbc_lbfgs')  ! use lbfgs
          end if
-         if (set%opt_engine == p_engine_rf) &
-            call ancopt_header(env%unit, set%veryverbose)
-         !! Print ANCopt header
 
          ! start optimization timer !
          call start_timing(3)
@@ -1233,44 +1248,7 @@ contains
 
       ! ------------------------------------------------------------------------
       !  make some post processing afterward, show some timings and stuff
-      write (env%unit, '(a)')
-      write (env%unit, '(72("-"))')
-      call stop_timing_run
-      call stop_timing(1)
-      call prdate('E')
-      write (env%unit, '(72("-"))')
-      call prtiming(1, 'total')
-      call prtiming(2, 'SCF')
-      if ((set%runtyp == p_run_opt) .or. (set%runtyp == p_run_ohess) .or. &
-         &   (set%runtyp == p_run_omd) .or. (set%runtyp == p_run_metaopt)) then
-         call prtiming(3, 'ANC optimizer')
-      end if
-      if (set%runtyp == p_run_path) then
-         call prtiming(4, 'path finder')
-      end if
-      if (((set%runtyp == p_run_hess) .or. (set%runtyp == p_run_ohess) .or. (set%runtyp == p_run_bhess))) then
-         if (set%mode_extrun /= p_ext_turbomole) then
-            call prtiming(5, 'analytical hessian')
-         else
-            call prtiming(5, 'numerical hessian')
-         end if
-      end if
-      if ((set%runtyp == p_run_md) .or. (set%runtyp == p_run_omd) .or. &
-          (set%runtyp == p_run_metaopt)) then
-         call prtiming(6, 'MD')
-      end if
-      if (set%runtyp == p_run_screen) then
-         call prtiming(8, 'screen')
-      end if
-      if (set%runtyp == p_run_modef) then
-         call prtiming(9, 'mode following')
-      end if
-      if (set%runtyp == p_run_mdopt) then
-         call prtiming(10, 'MD opt.')
-      end if
-
-      write (env%unit, '(a)')
-      call terminate(0)
+      call finalize_xtb(env) 
 
    end subroutine xtbMain
 
@@ -1471,7 +1449,25 @@ contains
          
          case('--ceh')
             if (get_xtb_feature('tblite')) then
-               tblite%ceh = .true.
+               allocate(tblite%ceh)
+               call set_runtyp('prescc')
+               ! check if numerical gradients should be calculated !
+               call args%nextArg(sec)
+               if (allocated(sec)) then
+                  if (sec == 'grad') then
+                     tblite%ceh%grad = .true.
+                     ! check if step size is provided !
+                     call args%nextArg(sec)
+                     if (allocated(sec)) then
+                        if (getValue(env, sec, ddum)) then
+                           tblite%ceh%step = ddum
+                        end if
+                     end if
+
+                  else
+                     call env%warning("Unknown CEH option '"//sec//"' provided", source)
+                  end if
+               end if 
             else
                call env%error("CEH charges are only available through tblite library", source)
                return
@@ -1699,6 +1695,7 @@ contains
             call args%nextArg(sec)
             if (allocated(sec)) then
                call set_scc(env, 'maxiterations', sec)
+               tblite%max_iter = set%maxscciter
             else
                call env%error("Integer argument for --iterations is missing", source)
             end if
@@ -2037,5 +2034,53 @@ contains
       call env%error("PTB not available without 'tblite'. Compiled without support for 'tblite' library.")
       call env%error("Please recompile without '-Dtblite=disabled' option or change meson setup.")
    end subroutine ptb_feature_not_implemented
+
+   !>  make some post processing afterward, show some timings and stuff
+   subroutine finalize_xtb(env)
+    
+      !> Calculation environment
+      type(TEnvironment), intent(in) :: env
+
+      write (env%unit, '(a)')
+      write (env%unit, '(72("-"))')
+      call stop_timing_run
+      call stop_timing(1)
+      call prdate('E')
+      write (env%unit, '(72("-"))')
+      call prtiming(1, 'total')
+      if (.not. set%runtyp == p_run_prescc) &
+         call prtiming(2, 'SCF')
+      if ((set%runtyp == p_run_opt) .or. (set%runtyp == p_run_ohess) .or. &
+         &   (set%runtyp == p_run_omd) .or. (set%runtyp == p_run_metaopt)) then
+         call prtiming(3, 'ANC optimizer')
+      end if
+      if (set%runtyp == p_run_path) then
+         call prtiming(4, 'path finder')
+      end if
+      if (((set%runtyp == p_run_hess) .or. (set%runtyp == p_run_ohess) .or. (set%runtyp == p_run_bhess))) then
+         if (set%mode_extrun /= p_ext_turbomole) then
+            call prtiming(5, 'analytical hessian')
+         else
+            call prtiming(5, 'numerical hessian')
+         end if
+      end if
+      if ((set%runtyp == p_run_md) .or. (set%runtyp == p_run_omd) .or. &
+          (set%runtyp == p_run_metaopt)) then
+         call prtiming(6, 'MD')
+      end if
+      if (set%runtyp == p_run_screen) then
+         call prtiming(8, 'screen')
+      end if
+      if (set%runtyp == p_run_modef) then
+         call prtiming(9, 'mode following')
+      end if
+      if (set%runtyp == p_run_mdopt) then
+         call prtiming(10, 'MD opt.')
+      end if
+
+      write (env%unit, '(a)')
+      call terminate(0)
+
+   end subroutine finalize_xtb
 
 end module xtb_prog_main

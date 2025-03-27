@@ -517,10 +517,8 @@ module xtb_propertyoutput
       if (set%pr_fod) then
          allocate (C(basis%nbf, basis%nao), focca(basis%nao), foccb(basis%nao), focc(basis%nao), emo(basis%nao), &
                    source=0.0_wp)
-         if (wfx%ihomoa + 1 <= basis%nao) &
-            call fermismear(.false., basis%nao, wfx%ihomoa, set%etemp, wfx%emo, focca, nfoda, efa, ga)
-         if (wfx%ihomob + 1 <= basis%nao) &
-            call fermismear(.false., basis%nao, wfx%ihomob, set%etemp, wfx%emo, foccb, nfodb, efb, gb)
+         call fermismear(.false., basis%nao, wfx%ihomoa, set%etemp, wfx%emo, focca, nfoda, efa, ga)
+         call fermismear(.false., basis%nao, wfx%ihomob, set%etemp, wfx%emo, foccb, nfodb, efb, gb)
          emo = wfx%emo * evtoau
          call fodenmak(.true., basis%nao, emo, focca, efa)
          call fodenmak(.true., basis%nao, emo, foccb, efb)
@@ -591,10 +589,8 @@ module xtb_propertyoutput
          else
             call sao2cao(basis%nao, wfx%C, basis%nbf, C, basis)
          end if
-         if (wfx%ihomoa + 1 <= wfx%nao) &
-            call fermismear(.false., basis%nao, wfx%ihomoa, set%etemp, wfx%emo, focc, nfoda, efa, ga)
-         if (wfx%ihomob + 1 <= wfx%nao) &
-            call fermismear(.false., basis%nao, wfx%ihomob, set%etemp, wfx%emo, focc, nfodb, efb, gb)
+         call fermismear(.false., basis%nao, wfx%ihomoa, set%etemp, wfx%emo, focc, nfoda, efa, ga)
+         call fermismear(.false., basis%nao, wfx%ihomob, set%etemp, wfx%emo, focc, nfodb, efb, gb)
          call stmpic(mol%n, basis%nao, basis%nbf, mol%at, mol%xyz, C, 0.5_wp * (efa + efb), wfx%emo, basis)
          deallocate (C, focc)
       end if
@@ -655,11 +651,11 @@ module xtb_propertyoutput
       call PREIGF(iunit, res%freq, res%n3true)
 
       write (iunit, '(1x,a)') 'reduced masses (amu)'
-      write (iunit, '(8(i4,'':'',f6.2))') (i, res%rmass(i), i=1, res%n3)
+      write (iunit, '(6(i5,'':'',f10.2))') (i, res%rmass(i), i=1, res%n3)
       write (iunit, '(1x,a)') 'IR intensities (km·mol⁻¹)'
-      write (iunit, '(8(i4,'':'',f6.2))') (i, res%dipt(i), i=1, res%n3)
+      write (iunit, '(6(i5,'':'',f10.2))') (i, res%dipt(i), i=1, res%n3)
       write (iunit, '(1x,a)') 'Raman intensities (Ä⁴*amu⁻¹)'
-      write (iunit, '(8(i4,'':'',f6.2))') (i, res%polt(i), i=1, res%n3)
+      write (iunit, '(6(i5,'':'',f10.2))') (i, res%polt(i), i=1, res%n3)
 
       call open_file(ifile, 'vibspectrum', 'w')
       if (set%elprop == p_elprop_alpha) then
@@ -1151,10 +1147,8 @@ module xtb_propertyoutput
                 source=0.0_wp)
 
       call makel(nao, S, C, X)
-      if (ihomoa + 1 <= nao) &
-         call fermismear(.false., nao, ihomoa, etemp, emo, focca, nfoda, efa, ga)
-      if (ihomob + 1 <= nao) &
-         call fermismear(.false., nao, ihomob, etemp, emo, foccb, nfodb, efb, gb)
+      call fermismear(.false., nao, ihomoa, etemp, emo, focca, nfoda, efa, ga)
+      call fermismear(.false., nao, ihomob, etemp, emo, foccb, nfodb, efb, gb)
       call fodenmak(.true., nao, emo * evtoau, focca, efa)
       call fodenmak(.true., nao, emo * evtoau, foccb, efb)
 
@@ -1320,6 +1314,7 @@ module xtb_propertyoutput
             & temp, sthr, et(i), ht(i), gt(i), ts(i), zp, pr)
          !call oldthermo(aa,bb,cc,avmom,linear,atom,symnum,wt,vibs,nvib,escf, &
          !   & temp,sthr,et(i),ht(i),gt(i),ts(i),zp,pr)
+         ! has been removed in PR #1077 (2f7b7ed86c4a2f50be85a4ed4712c98b4a9c0e8f) to be fully replaced by 'thermodyn'
       end do
 
       write (iunit, '(a)')
